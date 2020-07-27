@@ -1277,7 +1277,7 @@ InteractPreds_dominance <- testFitInteract_dominance %>%
 print("Preview of the predictions of best fitting interact model on mean dominance per IAPS data:")
 InteractPreds_dominance %>% 
   select(interactPrediction, Actual) %>%
-  head(20) %>%
+  head(20)
 
 #preview model metrics
 print("Model Beta Estimates for Elastic Net Regression - Interact:")
