@@ -50,7 +50,15 @@ dirImageOrder <- '~/Desktop/IAPS/Subject Image Order/' #set the directory for im
 filesIAPS <- dir_ls(dirIAPS) #list the files in the IAPS directory
 filesData <- dir_ls(dirData) #list the files in the subject data directory
 filesImageOrder <- dir_ls(dirImageOrder) #list the files in the image order directory
-
+demographics <- read.csv(file = "C:/Users/rachjone/Documents/KLRIF_2018-07-09.csv")
+d <- demographics %>%
+  rename(subject = 'Subject.ID', age = 'Age..years.', gender = 'What.is.your.gender.')
+d2 <- d %>%
+  mutate(subject = str_replace(subject, "\\-", "\\_"))
+d3 <- d2 %>%
+  mutate(gender = recode(d2$gender, "Male" = 1, "Female" = 2))
+d4 <- d3 %>%
+  select (subject, age, gender)
 ```
 
 ```{r read data, message = FALSE, warning = FALSE}
