@@ -294,6 +294,14 @@ phase$one
 
 
 
+# process Rating data stuff -----------------------------------------------
+
+
+yada <- iapsr::processRatingsData(iapsr::readRatings('scratch/IAPS_B.iaps_stream_rating.01.nosessionid.2020-07-16T10_27_19'))
+
+
+
+
 
 
 

@@ -141,3 +141,42 @@ processRatingsData <- function(data) {
 
   return(combined)
 }
+
+#' Setup Data for Testing Regression Models
+#'
+#' This function is to be used in order to set up the new data collected from
+#' the IAPS task to test the regression models generated from previous data.
+#'
+#' @param processedData The data output from \code{\link{processRatingsData}}.
+#'
+#' @return A tibble that's 120 rows by 3 columns. It has the IAPS column, which
+#'   is a factor that contains the IDs of each image in the IAPS data set, as
+#'   well as a negative and positive column that correspond to the ratings for
+#'   each image when the subjects were asked "How positive does this image make
+#'   you feel?" and "How negative does this image make you feel?"
+#'
+#' @export
+#'
+regSetup <- function(processedData) {
+
+  pos <- processedData %>%
+    dplyr::filter(question == "positive") %>%
+    tidyr::pivot_wider(names_from = question,
+                values_from = rating)
+
+  neg <- processedData %>%
+    dplyr::filter(question == "negative") %>%
+    tidyr::pivot_wider(names_from = question,
+                values_from = rating)
+
+  out <- dplyr::full_join(pos, neg, by = "picture") %>%
+    dplyr::select(-c(round.x, round.y)) %>%
+    dplyr::filter(picture != "neutral") %>%
+    dplyr::rename(IAPS = picture)
+
+  return(out)
+
+}
+
+
+

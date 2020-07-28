@@ -1,9 +1,9 @@
 ---
 title: "IAPS Regression Analysis"
 author: "Jonathan Trattner, Rachel Jones, and Delaney Teceno"
-date: date: "Last compiled on `r format(Sys.time(), %B, '%d, %Y')`"
+date: "7/26/2020"
 output: 
-  html_document:
+  html_notebook:
     df_print: paged
     toc: true
     toc_depth: 4
@@ -14,6 +14,7 @@ output:
     highlight: monochrome
     code_folding: hide
 ---
+
 ```{r setup, include=FALSE}
 #Load packages
 library(tidyverse)
@@ -21,8 +22,7 @@ library(fs)
 library(tidymodels)
 library(tictoc)
 library(vip)
-library(iapsr) #our package, woohoo!
-
+library(iapsr)
 myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face = "bold.italic", size=16), #plot title aesthetics
                    plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12), #plot subtitle aesthetics
                    axis.title.x = ggplot2::element_text(size = 12, color= "black", face = "bold"), #x axis title aesthetics
@@ -1728,6 +1728,12 @@ dom_RJT_001Metrics
 ### Comparing Model's Predictions
 
 In summary, we used the models that fit valence, arousal, and dominance the best on previously collected data. When predicting on a new subject, we get an rmse of `r round(val_RJT_001Metrics %>% filter(Metric == "rmse") %>% pull(Estimate),3)`, `r round(aro_RJT_001Metrics %>% filter(Metric == "rmse") %>% pull(Estimate), 3)`, and `r round(dom_RJT_001Metrics %>% filter(Metric == "rmse") %>% pull(Estimate),3)`, for valence, arousal, and dominance, respectively. These compare with the test rmse when training the models of `r round(RMSEMetrics %>% slice(1) %>% pull(Estimate),3)` for valence, `r round(RMSEMetrics_arousal %>% slice(1) %>% pull(Estimate),3)` for arousal, and `r round(RMSEMetrics_dominance %>% slice(1) %>% pull(Estimate),3)` for dominance. 
+
+
+
+
+
+
 
 
 

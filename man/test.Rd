@@ -13,7 +13,7 @@ A data frame with 1863 rows and 2 columns
 }
 }
 \source{
-IAPS dataset
+Kishida Lab (researcher)
 }
 \usage{
 test
