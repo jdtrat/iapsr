@@ -18,6 +18,7 @@ output:
 params:
   numSubjects: 5
 ---
+
 ```{r setup, include = FALSE}
 #Load packages
 library(tidyverse)
@@ -46,7 +47,7 @@ myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face =
 
 ## Introduction
 
-Background on choice task ! Woohoo!
+Background on choice task ! Woohoo! Thanks *Rachel* for being so **awesome!**
 
 ### Read in the Data
 
