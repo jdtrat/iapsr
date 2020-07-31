@@ -18,5 +18,7 @@ A tibble that's 120 rows by 3 columns. It has the IAPS column, which
 }
 \description{
 This function is to be used in order to set up the new data collected from
-the IAPS task to test the regression models generated from previous data.
+the IAPS task to test the regression models generated from previous data. It
+can be used in batch formulation, joining by subject in addition to picture
+rating.
 }

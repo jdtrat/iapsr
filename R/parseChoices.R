@@ -17,8 +17,6 @@ readChoices <- function(filePath) {
   return(ratingData)
 }
 
-
-
 #' Get Task Phases
 #'
 #' This function takes the data column from the output of
@@ -219,33 +217,49 @@ getImageShown <- function(phaseData){
 #' Process Choice Data
 #'
 #' This function takes the data column from the output of
-#' \code{\link{readChoices}} and runs four functions, binding the results in a
+#' \code{\link{readChoices}} and runs five functions, binding the results in a
 #' dataframe for easy manipulation: \itemize{ \item \code{\link{getPhases}}
 #' which separates the three phases of the task, saving them to the environment
 #' \code{phrase}, which is initialized behind the scenes. \item
-#' \code{\link{getIcons}} which gets the icon options shown to the subject.
-#' \item \code{\link{getChoices}} which gets the choice the subject makes. \item
+#' \code{\link{getGroupInfo}} which returns a dataframe of the icons and the
+#' payment weighting group they correspond to in each phase. It has the expected
+#' utility and relative ranks of choosing each option. \item \code{\link{getIcons}}
+#' which gets the icon options shown to the subject. \item
+#' \code{\link{getChoices}} which gets the choice the subject makes. \item
 #' \code{\link{getImageShown}} which gets the images the subject is shown after
 #' choosing an icon.}
 #'
 #'
 #' @param data The data output from \code{\link{readChoices}}
 #'
-#' @return A dataframe 150 rows and 8 columns: \itemize{ \item \emph{phase:} The
-#'   phase the choices were made in. \item \emph{round:} The round number these
-#'   choices were made in, specific to the phase. \item \emph{icon1:} The icon
-#'   presented in the first order position. \item \emph{icon2:} The icon
-#'   presented in the second order position. \item \emph{option:} The option the
-#'   subject chose. This should correspond to the icon order as presented in the
-#'   task. \item \emph{choice:} The icon the subject chose. \item \emph{group:}
-#'   The (payment weighting) group the icon corresponds to. \item \emph{image:}
-#'   The image the subject was shown after making a choice. }
+#' @return A dataframe 150 rows and 13 columns: \itemize{ \item \emph{phase:}
+#'   The phase the choices were made in. \item \emph{round:} The round number
+#'   these choices were made in, specific to the phase. \item
+#'   \emph{runningRound:} The round number these choices were made in (1-150),
+#'   independent of phase. This is useful for plotting the percent of optimal
+#'   choices over time. \item \emph{icon1:} The icon presented in the first
+#'   order position. \item \emph{rank1:} The rank of icon1. The higher this is,
+#'   the higher the expected utility of choosing icon1. \item \emph{icon2:} The
+#'   icon presented in the second order position. \item \emph{rank2:} The rank
+#'   of icon2. The higher this is, the higher the expected utility of choosing
+#'   icon2.\item \emph{option:} The option the subject chose. This should
+#'   correspond to the icon order as presented in the task. \item \emph{choice:}
+#'   The icon the subject chose. \item \emph{group:} The (payment weighting)
+#'   group the chosen icon corresponds to. \item \emph{image:} The image the
+#'   subject was shown after making a choice. \item \emph{optimal:} A binary
+#'   variable tracking whether or not the choice was optimal. This is 1 if the
+#'   rank of the icon chosen is higher than the rank of the one not chosen. It
+#'   is 0 otherwise. The ranks are based on the expected utility for each icon.
+#'   See \code{\link{getGroupInfo}} for that information. \item
+#'   \emph{percentOptimal:} The cumulative sum of optimal choices divided by the
+#'   total round (1-150).}
 #'
 #' @export
 
 processChoiceData <- function(data){
 
   getPhases(data)
+  groupKey <- getGroupInfo(data)
   phases <- list(phase$one, phase$two, phase$three)
 
   icons <- purrr::map_df(phases, ~getIcons(.x))
@@ -257,7 +271,43 @@ processChoiceData <- function(data){
     dplyr::full_join(images, by = c("phase", "round")) %>%
     dplyr::select(phase, round, dplyr::everything())
 
-  return(combined)
+  #join the ranks with icon1
+  icon1 <- combined %>%
+    dplyr::rename(icon = icon1) %>%
+    dplyr::left_join(groupKey, by = c("phase", "icon")) %>%
+    dplyr::rename(icon1 = icon,
+           rank1 = rank) %>%
+    dplyr::select(-c(group.y, reward, probability, EU)) %>%
+    dplyr::relocate(rank1, .after = icon1)
+
+  #join the ranks with icon2
+  icon2 <- combined %>%
+    dplyr::rename(icon = icon2) %>%
+    dplyr::left_join(groupKey, by = c("phase", "icon")) %>%
+    dplyr::rename(icon2 = icon,
+           rank2 = rank) %>%
+    dplyr::select(-c(group.y, reward, probability, EU)) %>%
+    dplyr::relocate(rank2, .after = icon2)
+
+  #rejoin the icon1 and icon2 rankings together, add optimal and percentOptimal
+  #columns.
+  together <- dplyr::full_join(icon1, icon2,
+                               by = c("phase", "round", "icon1",
+                                      "icon2", "option", "choice",
+                                      "group.x", "image")) %>%
+    dplyr::rename(group = group.x) %>%
+    dplyr::relocate(rank2, .after = icon2) %>%
+    dplyr::mutate(optimal = dplyr::case_when(option == 1 & rank1 > rank2 ~ 1,
+                                             option == 1 & rank1 < rank2 ~ 0,
+                                             option == 2 & rank1 > rank2 ~ 0,
+                                             option == 2 & rank1 < rank2 ~ 1),
+                  #percent optimal is the cumulative sum of optimal divided by the number of total rounds
+                  percentOptimal = base::cumsum(optimal) / dplyr::row_number(),
+                  #create a total round column for plotting purposes
+                  runningRound = dplyr::row_number()) %>%
+    dplyr::relocate(runningRound, .after = round)
+
+  return(together)
 }
 
 
@@ -333,9 +383,12 @@ getGroupRewardProbs <- function(phaseData) {
 #'
 #' @param data The data output from \code{\link{readChoices}}
 #'
-#' @return A dataframe with 15 rows and four columns. It has the reward and
-#'   probability of receiving it as a function of each image's group per phase.
-#'   This can be compared to the output of \code{\link{getChoices}} or
+#' @return A dataframe with 15 rows and seven columns. It has the reward amount
+#'   and probability of receiving a reward as a function of each image's group
+#'   per phase. This also has the icon to group mapping for the subject. Most
+#'   importantly, it has the EU and rank columns. These are used to determine
+#'   optimal choice when measuring behavioral performance. This can be used in
+#'   conjunction with the output of \code{\link{getChoices}} or
 #'   \code{\link{processChoiceData}}.
 #' @export
 
@@ -344,8 +397,123 @@ getGroupInfo <- function(data) {
   getPhases(data)
   phases <- list(phase$one, phase$two, phase$three)
 
-  output <- purrr::map_df(phases, ~getGroupRewardProbs(.x))
+  iconGroupMaps <- data %>%
+    dplyr::filter(stringr::str_detect(.$data, "ICON TO GROUP MAPPING: ")) %>%
+    dplyr::select(-time) %>%
+    dplyr::mutate(data = stringr::str_remove(data, "ICON TO GROUP MAPPING:"),
+                  data = stringr::str_remove(data, "\\{"),
+                  data = stringr::str_remove(data, "\\}")) %>%
+    tidyr::separate(col = data,
+                    into = c("icon1", "icon2", "icon3", "icon4", "icon5", "icon6"),
+                    sep = "\\,") %>%
+    tidyr::pivot_longer(cols = everything(),
+                        names_to = "iconNum") %>%
+    dplyr::mutate(value = stringr::str_remove_all(value, "\\\"")) %>%
+    tidyr::separate(value,
+                    into = c("icon", "group"),
+                    sep = "\\:") %>%
+    dplyr::arrange(group) %>%
+    dplyr::transmute(icon = stringr::str_trim(icon),
+                     group = base::as.factor(group))
+
+  #warnings suppressed due to there only being three groups in phase 1. It throws a warning but it doesn't matter.
+  output <- base::suppressWarnings(dplyr::full_join(iconGroupMaps, purrr::map_df(phases, ~getGroupRewardProbs(.x)), by = "group")) %>%
+    dplyr::arrange(phase) %>%
+    dplyr::select(phase, icon, group, reward, probability) %>%
+    dplyr::mutate(EU = base::as.numeric(reward) * probability) %>%
+    dplyr::group_by(phase) %>%
+    dplyr::mutate(rank = dplyr::min_rank(EU))
 
   return(output)
 
 }
+
+
+#' Plot the Percent of Optimal Choices for Each Subject
+#'
+#' @param processedData The output of \code{\link{processChoiceData}}.
+#' @param facet Logical: TRUE and plots will be faceted by subject. FALSE and it won't. Default is FALSE.
+#'
+#' @return A plot showing the percent of optimal choices over time (round number), with each phase specified.
+#' @export
+#'
+
+plotPercentOptimal <- function(processedData, facet = FALSE) {
+
+  myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face = "bold.italic", size=16), #plot title aesthetics
+                              plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12), #plot subtitle aesthetics
+                              axis.title.x = ggplot2::element_text(size = 12, color= "black", face = "bold"), #x axis title aesthetics
+                              axis.title.y = ggplot2::element_text(size = 12, color= "black", face = "bold"), #y axis title aesthetics
+                              axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5, size = 12),
+                              #legend aesthetics
+                              legend.title = ggplot2::element_text(size= 14,
+                                                                   color = "black",
+                                                                   face = "bold"),
+                              legend.title.align = 0.5,
+                              legend.text = ggplot2::element_text(size = 10,
+                                                                  color = "black",
+                                                                  face = "bold"),
+                              legend.text.align = 0)
+
+  phaseLabels <- tibble::tribble(~label,      ~x,             ~y,
+                                 "Phase 1", 12.5, base::max(processedData$percentOptimal) + 0.05,
+                                 "Phase 2", 50,   base::max(processedData$percentOptimal) + 0.05,
+                                 "Phase 3", 115,  base::max(processedData$percentOptimal) + 0.05)
+
+  plot <- ggplot2::ggplot(processedData, aes(x = runningRound, y = percentOptimal)) +
+    ggplot2::geom_line(aes(color = subject), size = 1) +
+    ggplot2::scale_y_continuous(labels = scales::percent, breaks = c(seq(0,1, by = 0.2))) +
+    ggplot2::labs(x = "Round Number",
+                  y = "Percent of Optimal choices",
+                  title = "Optimal Choices Over Time",
+                  color = "Subject") +
+    #geom_vline(xintercept = c(25, 75)) +
+    myGGTheme +
+    theme(panel.background = ggplot2::element_blank(),
+          panel.grid.major = ggplot2::element_blank(),
+          panel.grid.minor = ggplot2::element_blank(),
+          axis.line = ggplot2::element_line(colour = "black"),
+          strip.background = element_rect(fill = "aliceblue")) +
+    scale_size(guide = "none")#remove the size legend
+
+    if(facet) {
+      plot <- plot +
+        #annotate the background for phase 1
+        ggplot2::annotate(geom = "rect", xmin = 0, xmax = 25, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "green", alpha = 0.125) +
+        #annotate the background for phase 2
+        ggplot2::annotate(geom = "rect", xmin = 25, xmax = 75, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "blue", alpha = 0.125) +
+        #annotate the background for phase 3
+        ggplot2::annotate(geom = "rect", xmin = 75, xmax = 150, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "pink", alpha = 0.125) +
+        ggplot2::geom_text(data = phaseLabels,
+                           mapping = aes(x = x,
+                                         y = y,
+                                         label = label,
+                                         fontface = "bold"),
+                           size = 2,
+                           show.legend = FALSE) +
+        facet_wrap(~subject) +
+        theme(legend.position = "none")
+    } else if (!facet) {
+      plot <- plot +
+        #annotate the background for phase 1
+        ggplot2::annotate(geom = "rect", xmin = 0, xmax = 25, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "green", alpha = 0.125) +
+        #annotate the background for phase 2
+        ggplot2::annotate(geom = "rect", xmin = 25, xmax = 75, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "blue", alpha = 0.125) +
+        #annotate the background for phase 3
+        ggplot2::annotate(geom = "rect", xmin = 75, xmax = 150, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "pink", alpha = 0.125) +
+        ggplot2::geom_text(data = phaseLabels,
+                           mapping = aes(x = x,
+                                         y = y,
+                                         label = label,
+                                         fontface = "bold"),
+                           size = 4.5,
+                           show.legend = FALSE)
+
+    }
+
+  return(plot)
+
+}
+
+
+

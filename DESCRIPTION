@@ -20,5 +20,8 @@ Imports:
     forcats,
     tidyr,
     purrr,
-    utils
+    utils,
+    ggplot2,
+    scales,
+    tibble
 RoxygenNote: 7.1.1

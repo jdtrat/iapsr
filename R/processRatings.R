@@ -145,7 +145,9 @@ processRatingsData <- function(data) {
 #' Setup Data for Testing Regression Models
 #'
 #' This function is to be used in order to set up the new data collected from
-#' the IAPS task to test the regression models generated from previous data.
+#' the IAPS task to test the regression models generated from previous data. It
+#' can be used in batch formulation, joining by subject in addition to picture
+#' rating.
 #'
 #' @param processedData The data output from \code{\link{processRatingsData}}.
 #'
@@ -169,14 +171,18 @@ regSetup <- function(processedData) {
     tidyr::pivot_wider(names_from = question,
                 values_from = rating)
 
-  out <- dplyr::full_join(pos, neg, by = "picture") %>%
-    dplyr::select(-c(round.x, round.y)) %>%
-    dplyr::filter(picture != "neutral") %>%
-    dplyr::rename(IAPS = picture)
+  if ("subject" %in% names(processedData)) {
+    out <- dplyr::full_join(pos, neg, by = c("subject", "picture")) %>%
+      dplyr::select(-c(round.x, round.y)) %>%
+      dplyr::filter(picture != "neutral") %>%
+      dplyr::rename(IAPS = picture)
+  } else if (!"subject" %in% names(processedData)) {
+    out <- dplyr::full_join(pos, neg, by = "picture") %>%
+      dplyr::select(-c(round.x, round.y)) %>%
+      dplyr::filter(picture != "neutral") %>%
+      dplyr::rename(IAPS = picture)
+  }
 
   return(out)
 
 }
-
-
-

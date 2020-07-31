@@ -10,9 +10,12 @@ getGroupInfo(data)
 \item{data}{The data output from \code{\link{readChoices}}}
 }
 \value{
-A dataframe with 15 rows and four columns. It has the reward and
-  probability of receiving it as a function of each image's group per phase.
-  This can be compared to the output of \code{\link{getChoices}} or
+A dataframe with 15 rows and seven columns. It has the reward amount
+  and probability of receiving a reward as a function of each image's group
+  per phase. This also has the icon to group mapping for the subject. Most
+  importantly, it has the EU and rank columns. These are used to determine
+  optimal choice when measuring behavioral performance. This can be used in
+  conjunction with the output of \code{\link{getChoices}} or
   \code{\link{processChoiceData}}.
 }
 \description{
