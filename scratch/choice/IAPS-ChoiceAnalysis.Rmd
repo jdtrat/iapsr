@@ -47,7 +47,12 @@ myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face =
 
 ## Introduction
 
-Background on choice task ! Woohoo! Thanks *Rachel* for being so **awesome!**
+The IAPS choice game is a 150-round two-choice probabilistic reward task that utilizes emotionally-stimulating images as outcomes. Participants are asked to choose between one of two icons that yield positive, neutral, or negative images varying in affective complexity. This task transitions through three phases in which participants are expected to learn which icons have the highest probability of resulting in a positive image. 
+
+Phase one includes 25 rounds with positive-only icons, where fixed probabilities of showing positive images are pre-determined (i.e. 25%, 50%, and 75% vs neutral). Phase two introduces negative-only icons with similar fixed probabilities of showing negative images per icon, which continues for 50 rounds. In these phases, each round shows pairs of positive icons or pairs of negative icons exclusively. However, in phase 3, all icons are mixed so that any round may consist of two positive icons, two negative icons, or one positive and one negative icon. In this phase, outcome magnitudes change giving rise to higher-complexity positive and negative images. The probabilities associated with each icon remain the same, altering the expected value of each option.
+
+There is also a preference task at the beginning and ending of the choice game. Participants select one of two icons they prefer with no proceeding outcome. This is important to determine if certain characteristics of icons (i.e. color, laterality) influence participants' choices throughout the game or if this changes because of image outcome.
+
 
 ### Read in the Data
 
@@ -124,3 +129,4 @@ finalChoiceData %>% plotPercentOptimal(facet = FALSE)
 finalChoiceData %>% plotPercentOptimal(facet = TRUE)
 
 ```
+
