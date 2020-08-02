@@ -14,13 +14,15 @@ output:
     highlight: monochrome
     code_folding: hide
 params:
-  numSubjects: 5
+  numSubjects: 6
 ---
 
-**Participants and procedure**
-24 healthy volunteers (18 females and 6 males) between ages 18 and 64 were recruited for this study at the Piedmont Triad Research Community Center. We conducted an a priori power analysis using a power value of no lower than 80% for a linear regression with an α value of 0.05. We used RStudio `pwr` package to calculate the minimal sample size for general linear model which calculated an F statistic for the model. The results of this analysis showed that 20 participants would ensure 80% statistical power. All subjects were screened 24 hours in advance, and minutes before, scheduled appointments to ensure no COVID-19 symptomology. The average age of participants was “X” years old (SD= x, range= x). The study was approved by the institutional review board of Wake Forest University School of Medicine. 
+## Participants and procedure
 
-**Task Description**
+24 healthy volunteers (18 females and 6 males) between ages 18 and 64 were recruited for this study at the Piedmont Triad Research Community Center. We conducted an a priori power analysis using a power value of no lower than 80% for a linear regression with an α value of 0.05. We used the R package `pwr` to calculate the minimal sample size for general linear model. This suggested 20 participants would ensure 80% statistical power. All subjects were screened 24 hours in advance, and minutes before, scheduled appointments to ensure no COVID-19 symptomology. The average age of participants was “X” years old (SD = x, range = x). The study was approved by the institutional review board of Wake Forest University School of Medicine. 
+
+## Task Description
+
 This task consisted of two components: a passive choice game followed by image ratings. The choice game was a 150-trial two-choice probabilistic reward task with emotionally-stimulating images from the IAPS database used as reinforcers. Each trial began with presentation of two icons on a computer screen, and participants were required to choose between them using a Logitech gaming controller. A total of 58 icons were randomly selected to be in one of six groups, with six unique icons per group (Table 1). Within each group, icons held fixed probabilities of displaying positive, neutral, or negative images as outcomes. The game was divided into three phases that the icon groups corresponded to, with 25 trails in phase one, 50 trails in phase 2, and 75 trials in phase 3 (Table 2). 
 
 Phase one held positive-only icons, where fixed probabilities of showing positive images were pre-determined per icon (i.e. 25%, 50%, and 75% vs neutral). Phase two introduced negative-only icons with similar fixed probabilities of showing negative images per icon. In these phases, each round showed pairs of positive icons or pairs of negative icons exclusively. However, in phase 3, all icons were mixed so that any round may have consisted of two positive icons, two negative icons, or one positive and one negative icon. In this phase, outcome magnitudes changed giving rise to higher-complexity positive and negative images. That is, our selected positive and negative images were not equidistant from zero, but rather varied in complexity according to phase number. The probabilities associated with each icon remained the same throughout the game, meaning the expected value of each option is altered by phase 3. We employed this phase transition to understand temporal learning effects from images that vary in reward and complexity. The IAPS images used are presented in Appendix A according to valence, dominance, and arousal. 
@@ -35,12 +37,14 @@ Participants were instructed to select their preferred icon and told that differ
   
 After the passive choice game, participants rated all 121 images in response to the question of how positive and negative each image made them feel. The answers ranged from ‘not at all’ to ‘very much’ whereby their answers were constrained along specific parametric dimensions. Participants used the same Logitech controller used during the choice game to rate these images. 
 
-**Statistical Analyses**
+## Statistical Analyses 
 
-*Choice game*
+### Choice game 
+
 The percent of optimal choices for this cohort was plotted with respect to trial number over all phases of the choice game. 
 
-*Rating Task*
+### Rating Task
+
 Using both the `tidymodels` framework in R and the `caret` package in R, we tuned an elastic net regression with a wide array of alpha (0 to 1) and lambda (0 to 200) values using six-fold and ten-fold cross validation. Our goal was to determine the best model for predicting the mean valence, arousal, and dominance ratings (from the IAPS standardized IAPS data set) using subjects' positive and negative image ratings (and the interaction between them), age, and gender. We trained our model on data collected from participants in 2018 (n = 47) and tested it on the most recent 24 subjects. Model fit was evaluated with the root mean squared error (rmse), mean absolute error (mae), and the R2 metrics. These indicated that a regular linear regression performed best. We used both the `caret` package to perform 10-fold cross validation on the training data, and the `lm` function in R fit on the entire training dataset. The linear models performed equally well independent of cross validation. It should also be noted that we tested the linear model without the interaction between positive and negative ratings and it performed worse on all metrics. Included are code snippets for performing linear regressions using `lm` and `caret`. Elastic net regression code and model coefficients are available upon request.
 
 To determine the accuracy of our model, we compared actual and predicted outcomes. Actual outcomes were defined by standardized scores of valence, arousal, and dominance from the IAPS database while predicted outcomes were defined by our linear regression results. The predicted and actual ratings had an overall correlation of 0.801 for valence, 0.743 for dominance, and 0.484 for arousal. 
