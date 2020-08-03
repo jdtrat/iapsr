@@ -14,13 +14,15 @@ output:
     highlight: monochrome
     code_folding: hide
 params:
-  numSubjects: 5
+  numSubjects: 6
 ---
 
-**Participants and procedure**
-24 healthy volunteers (18 females and 6 males) between ages 18 and 64 were recruited for this study at the Piedmont Triad Research Community Center. We conducted an a priori power analysis using a power value of no lower than 80% for a linear regression with an α value of 0.05. We used RStudio `pwr` package to calculate the minimal sample size for general linear model which calculated an F statistic for the model. The results of this analysis showed that 20 participants would ensure 80% statistical power. All subjects were screened 24 hours in advance, and minutes before, scheduled appointments to ensure no COVID-19 symptomology. The average age of participants was “X” years old (SD= x, range= x). The study was approved by the institutional review board of Wake Forest University School of Medicine. 
+## Participants and procedure
 
-**Task Description**
+24 healthy volunteers (18 females and 6 males) between ages 18 and 64 were recruited for this study at the Piedmont Triad Research Community Center. We conducted an a priori power analysis using a power value of no lower than 80% for a linear regression with an α value of 0.05. We used the R package `pwr` to calculate the minimal sample size for general linear model. This suggested 20 participants would ensure 80% statistical power. All subjects were screened 24 hours in advance, and minutes before, scheduled appointments to ensure no COVID-19 symptomology. The average age of participants was “X” years old (SD = x, range = x). The study was approved by the institutional review board of Wake Forest University School of Medicine. 
+
+## Task Description
+
 This task consisted of two components: a passive choice game followed by image ratings. The choice game was a 150-trial two-choice probabilistic reward task with emotionally-stimulating images from the IAPS database used as reinforcers. Each trial began with presentation of two icons on a computer screen, and participants were required to choose between them using a Logitech gaming controller. A total of 58 icons were randomly selected to be in one of six groups, with six unique icons per group (Table 1). Within each group, icons held fixed probabilities of displaying positive, neutral, or negative images as outcomes. The game was divided into three phases that the icon groups corresponded to, with 25 trails in phase one, 50 trails in phase 2, and 75 trials in phase 3 (Table 2). 
 
 Phase one held positive-only icons, where fixed probabilities of showing positive images were pre-determined per icon (i.e. 25%, 50%, and 75% vs neutral). Phase two introduced negative-only icons with similar fixed probabilities of showing negative images per icon. In these phases, each round showed pairs of positive icons or pairs of negative icons exclusively. However, in phase 3, all icons were mixed so that any round may have consisted of two positive icons, two negative icons, or one positive and one negative icon. In this phase, outcome magnitudes changed giving rise to higher-complexity positive and negative images. That is, our selected positive and negative images were not equidistant from zero, but rather varied in complexity according to phase number. The probabilities associated with each icon remained the same throughout the game, meaning the expected value of each option is altered by phase 3. We employed this phase transition to understand temporal learning effects from images that vary in reward and complexity. The IAPS images used are presented in Appendix A according to valence, dominance, and arousal. 
@@ -35,12 +37,14 @@ Participants were instructed to select their preferred icon and told that differ
   
 After the passive choice game, participants rated all 121 images in response to the question of how positive and negative each image made them feel. The answers ranged from ‘not at all’ to ‘very much’ whereby their answers were constrained along specific parametric dimensions. Participants used the same Logitech controller used during the choice game to rate these images. 
 
-**Statistical Analyses**
+## Statistical Analyses 
 
-*Choice game*
+### Choice game 
+
 The percent of optimal choices for this cohort was plotted with respect to trial number over all phases of the choice game. 
 
-*Rating Task*
+### Rating Task
+
 Using both the `tidymodels` framework in R and the `caret` package in R, we tuned an elastic net regression with a wide array of alpha (0 to 1) and lambda (0 to 200) values using six-fold and ten-fold cross validation. Our goal was to determine the best model for predicting the mean valence, arousal, and dominance ratings (from the IAPS standardized IAPS data set) using subjects' positive and negative image ratings (and the interaction between them), age, and gender. We trained our model on data collected from participants in 2018 (n = 47) and tested it on the most recent 24 subjects. Model fit was evaluated with the root mean squared error (rmse), mean absolute error (mae), and the R2 metrics. These indicated that a regular linear regression performed best. We used both the `caret` package to perform 10-fold cross validation on the training data, and the `lm` function in R fit on the entire training dataset. The linear models performed equally well independent of cross validation. It should also be noted that we tested the linear model without the interaction between positive and negative ratings and it performed worse on all metrics. Included are code snippets for performing linear regressions using `lm` and `caret`. Elastic net regression code and model coefficients are available upon request.
 
 To determine the accuracy of our model, we compared actual and predicted outcomes. Actual outcomes were defined by standardized scores of valence, arousal, and dominance from the IAPS database while predicted outcomes were defined by our linear regression results. The predicted and actual ratings had an overall correlation of 0.801 for valence, 0.743 for dominance, and 0.484 for arousal. 
@@ -61,8 +65,9 @@ library(xtable)
 library(knitr)
 library(kableExtra)
 library(iapsr) #our package, woohoo!
+library(patchwork)
 
-dirIAPS <- '~/Desktop/IAPS/IAPSdata/' #set the directory for IAPS data
+dirIAPS <- '~/Desktop/IAPS/IAPS Data/' #set the directory for IAPS data
 dirData <- '~/Desktop/IAPS/Subject Data/' #set the directory for subject data
 dirImageOrder <- '~/Desktop/IAPS/Subject Image Order/' #set the directory for image order
 dirRatings <- '~/Desktop/IAPS/RJT/ratings/' #for new cohort
@@ -136,7 +141,7 @@ subjectData <- filesData %>%
   select(-X1)
 
 #read in demographics
-demographics <- read_csv(file = "C:/Users/rachjone/Desktop/IAPS/Demographics/KLRIF_2018-07-09.csv")
+demographics <- read_csv(file = "~/Desktop/IAPS/Demographics/KLRIF_2018-07-09.csv")
   
 #tidy the demographics data
 tidyDems <- demographics %>%
@@ -173,7 +178,7 @@ negativeRatings <- labeledOrderedSubjectData %>%
 ```{r read data, message=FALSE, warning=FALSE}
 
 #Read raw demographic data that includes 84 subjects. 
-Dems <-read_csv(file = "C:/Users/rachjone/Desktop/IAPS/SFA_demographics.csv")
+Dems <-read_csv(file = "~/Desktop/IAPS/Demographics/SFA_demographics-downloaded-8-1-2020.csv")
 
 #Tidy the data and filter to only display demographic variables of interest (age, gender, race, ethnicity, history of psychiatric condition and medications, and current drug, alcohol, and smoking use.)
 tidyDems2 <- Dems %>%
@@ -224,7 +229,67 @@ mutate(gender = recode(gender, "0" = "Female", "1" = "Male"),
   select(-race) %>%
   rename(race = name)
 
-kable(dem.tab[1:10, ], type = "latex", caption = "A knitr table") %>%
-kable_styling(latex_options = "scale_down", full_width = NULL, position = "center")
+# kable(dem.tab[1:10, ], type = "latex", caption = "A knitr table") %>%
+# kable_styling(latex_options = "scale_down", full_width = NULL, position = "center")
+
+```
+
+
+
+```{r asdf, warning = FALSE}
+
+myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face = "bold.italic", size=16), #plot title aesthetics
+                   plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12), #plot subtitle aesthetics
+                   axis.title.x = ggplot2::element_text(size = 12, color= "black", face = "bold"), #x axis title aesthetics
+                   axis.title.y = ggplot2::element_text(size = 12, color= "black", face = "bold"), #y axis title aesthetics
+                   axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5, size = 12),
+                   #legend aesthetics
+                   legend.title = ggplot2::element_text(size= 14,
+                                    color = "black",
+                                    face = "bold"),
+                   legend.title.align = 0.5,
+                   legend.text = ggplot2::element_text(size = 10,
+                                              color = "black",
+                                              face = "bold"),
+                   legend.text.align = 0)
+
+genderCount <- dem.tab %>% count(gender)
+raceCount <- dem.tab %>% count(race) %>%
+  drop_na() %>%
+  mutate(race = fct_reorder(race, desc(n))) %>%
+  ggplot(aes(x = race, y = n, fill = race)) +
+  geom_col() +
+  labs(y = "Count",
+       x = "Race",
+       #caption = "Four subjects were removed because they ommitted their race.",
+       title = "Subject Race Demographic",
+       subtitle = "Original Cohort") +
+  myGGTheme +
+  scale_x_discrete(labels = c("White", "Black", "Asian", "Other")) +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "aliceblue"),
+        plot.background = element_rect(fill = "aliceblue"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_line(color = "lightblue1"))
+ageCount <- dem.tab %>% select(age) %>% 
+  ggplot(aes(x = age, fill = "red")) + 
+  geom_histogram(binwidth = 2) +
+  labs(y = "Count", 
+       x = "Age (years)",
+       title = "Subject Age Demographic",
+       subtitle = "Original Cohort") +
+  myGGTheme +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "aliceblue"),
+        plot.background = element_rect(fill = "aliceblue"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_line(color = "lightblue1"))
+alcoholCount <- dem.tab %>% count(alcohol_current)
+drugsCount <- dem.tab %>% count(drugs_current)
+
+
+raceCount + ageCount
+
+
 
 ``` 
