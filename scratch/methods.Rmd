@@ -188,7 +188,7 @@ tidyDems2 <- Dems %>%
   filter(race == "1" | subject == "SFA_1034" | subject == "SFA_1039" | subject == "SFA_1049" | subject == "SFA_1071") %>%
   distinct (subject, race, .keep_all = TRUE)
 
-#Join table with the 47 subjects we used for our analyses. This gets rid of extra subjects we did not include for the old cohort (There were 84 total, and we only used 47 in our analyese). 
+#Join table with the 47 subjects we used for our analyses. This gets rid of extra subjects we did not include for the old cohort (There were 84 total, and we only used 47 in our analyse). 
 finalData <- full_join(positiveRatings, negativeRatings, by = c("IAPS", "subject", "form")) %>%
   select(-c(order.x, order.y)) %>%
   full_join(keyIAPS, by = c("IAPS", "form")) %>%
@@ -209,7 +209,7 @@ DemJoin$ethnicity <- as.numeric(DemJoin$ethnicity)
 
 ```
 
-```{r echo=FALSE, results='asis'}
+```{r output table, echo = FALSE, results = 'asis'}
 
 #Create output table. 
 dem.tab <- DemJoin %>%
@@ -227,4 +227,4 @@ mutate(gender = recode(gender, "0" = "Female", "1" = "Male"),
 kable(dem.tab[1:10, ], type = "latex", caption = "A knitr table") %>%
 kable_styling(latex_options = "scale_down", full_width = NULL, position = "center")
 
-```
+``` 

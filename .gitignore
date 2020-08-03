@@ -1,2 +1,14 @@
 packrat/lib*/
 .Rproj.user
+.RData
+.Rhistory
+ah.doc
+ah.html
+finalData2.csv
+scratch/choice/IAPS-ChoiceAnalysis.html
+scratch/methods.html
+scratch/methods.Rmd
+scratch/ratings/IAPS-RegressionUpdated.rj
+scratch/ratings/IAPS-RegressionUpdatedRJ.Rmd
+star.doc
+star_descriptive_2.doc
