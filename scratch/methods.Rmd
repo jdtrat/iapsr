@@ -65,8 +65,9 @@ library(xtable)
 library(knitr)
 library(kableExtra)
 library(iapsr) #our package, woohoo!
+library(patchwork)
 
-dirIAPS <- '~/Desktop/IAPS/IAPSdata/' #set the directory for IAPS data
+dirIAPS <- '~/Desktop/IAPS/IAPS Data/' #set the directory for IAPS data
 dirData <- '~/Desktop/IAPS/Subject Data/' #set the directory for subject data
 dirImageOrder <- '~/Desktop/IAPS/Subject Image Order/' #set the directory for image order
 dirRatings <- '~/Desktop/IAPS/RJT/ratings/' #for new cohort
@@ -140,7 +141,7 @@ subjectData <- filesData %>%
   select(-X1)
 
 #read in demographics
-demographics <- read_csv(file = "C:/Users/rachjone/Desktop/IAPS/Demographics/KLRIF_2018-07-09.csv")
+demographics <- read_csv(file = "~/Desktop/IAPS/Demographics/KLRIF_2018-07-09.csv")
   
 #tidy the demographics data
 tidyDems <- demographics %>%
@@ -177,7 +178,7 @@ negativeRatings <- labeledOrderedSubjectData %>%
 ```{r read data, message=FALSE, warning=FALSE}
 
 #Read raw demographic data that includes 84 subjects. 
-Dems <-read_csv(file = "C:/Users/rachjone/Desktop/IAPS/SFA_demographics.csv")
+Dems <-read_csv(file = "~/Desktop/IAPS/Demographics/SFA_demographics-downloaded-8-1-2020.csv")
 
 #Tidy the data and filter to only display demographic variables of interest (age, gender, race, ethnicity, history of psychiatric condition and medications, and current drug, alcohol, and smoking use.)
 tidyDems2 <- Dems %>%
@@ -228,7 +229,67 @@ mutate(gender = recode(gender, "0" = "Female", "1" = "Male"),
   select(-race) %>%
   rename(race = name)
 
-kable(dem.tab[1:10, ], type = "latex", caption = "A knitr table") %>%
-kable_styling(latex_options = "scale_down", full_width = NULL, position = "center")
+# kable(dem.tab[1:10, ], type = "latex", caption = "A knitr table") %>%
+# kable_styling(latex_options = "scale_down", full_width = NULL, position = "center")
+
+```
+
+
+
+```{r asdf, warning = FALSE}
+
+myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face = "bold.italic", size=16), #plot title aesthetics
+                   plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12), #plot subtitle aesthetics
+                   axis.title.x = ggplot2::element_text(size = 12, color= "black", face = "bold"), #x axis title aesthetics
+                   axis.title.y = ggplot2::element_text(size = 12, color= "black", face = "bold"), #y axis title aesthetics
+                   axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5, size = 12),
+                   #legend aesthetics
+                   legend.title = ggplot2::element_text(size= 14,
+                                    color = "black",
+                                    face = "bold"),
+                   legend.title.align = 0.5,
+                   legend.text = ggplot2::element_text(size = 10,
+                                              color = "black",
+                                              face = "bold"),
+                   legend.text.align = 0)
+
+genderCount <- dem.tab %>% count(gender)
+raceCount <- dem.tab %>% count(race) %>%
+  drop_na() %>%
+  mutate(race = fct_reorder(race, desc(n))) %>%
+  ggplot(aes(x = race, y = n, fill = race)) +
+  geom_col() +
+  labs(y = "Count",
+       x = "Race",
+       #caption = "Four subjects were removed because they ommitted their race.",
+       title = "Subject Race Demographic",
+       subtitle = "Original Cohort") +
+  myGGTheme +
+  scale_x_discrete(labels = c("White", "Black", "Asian", "Other")) +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "aliceblue"),
+        plot.background = element_rect(fill = "aliceblue"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_line(color = "lightblue1"))
+ageCount <- dem.tab %>% select(age) %>% 
+  ggplot(aes(x = age, fill = "red")) + 
+  geom_histogram(binwidth = 2) +
+  labs(y = "Count", 
+       x = "Age (years)",
+       title = "Subject Age Demographic",
+       subtitle = "Original Cohort") +
+  myGGTheme +
+  theme(legend.position = "none",
+        panel.background = element_rect(fill = "aliceblue"),
+        plot.background = element_rect(fill = "aliceblue"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_line(color = "lightblue1"))
+alcoholCount <- dem.tab %>% count(alcohol_current)
+drugsCount <- dem.tab %>% count(drugs_current)
+
+
+raceCount + ageCount
+
+
 
 ```
