@@ -48,7 +48,7 @@ myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face =
 
 ## Introduction
 
-This document synthesizes different experiments aimed at understanding the neuro-computational basis of subjective feelings. In 2018, forty-eight subjects (original cohort) rated 120 images from the International Affective Picture System database which provides normative ratings on valence, arousal, and dominance. Our goal is to predict these normative ratings based on subjects' responses to the questions "How positive does this image make you feel?" and "How negative does this image make you feel?" We test our model on data collected during the summer of 2020 (new cohort), consisting of 24 healthy volunteers (18 females and 6 males). Subjects were recruited for this study at the Piedmont Triad Research Community Center and are between the ages of 18 and 64. We conducted an a priori power analysis using a power value of no lower than 80% for a linear regression with an α value of 0.05. We used the R package `pwr` to calculate the minimal sample size for general linear model. This suggested 20 participants would ensure 80% statistical power. All subjects were screened 24 hours in advance, and minutes before, scheduled appointments to ensure no COVID-19 symptomology. The average age of participants was “X” years old (SD = x, range = x). The study was approved by the institutional review board of Wake Forest University School of Medicine. 
+This document synthesizes different experiments aimed at understanding the neuro-computational basis of subjective feelings. In 2018, forty-eight subjects (original cohort) rated 120 images from the International Affective Picture System database which provides normative ratings on valence, arousal, and dominance. Our goal is to predict these normative ratings based on subjects' responses to the questions "How positive does this image make you feel?" and "How negative does this image make you feel?" We test our model on data collected during the summer of 2020 (new cohort), consisting of 24 healthy volunteers (18 females and 6 males). Subjects were recruited for this study at the Piedmont Triad Research Community Center and are between the ages of 18 and 64. We conducted an a priori power analysis using a power value of no lower than 80% for a linear regression with an $\alpha$ value of 0.05. We used the R package `pwr` to calculate the minimal sample size for general linear model. This suggested 20 participants would ensure 80% statistical power. All subjects were screened 24 hours in advance, and minutes before, scheduled appointments to ensure no COVID-19 symptomology. The average age of participants was “X” years old (SD = x, range = x). The study was approved by the institutional review board of Wake Forest University School of Medicine. 
 
 The first part of this document provides reproducible code for each step in the data analysis pipeline, including reading the data, tidying the data, running regression models, and visualizing results for the ratings task described above. The second part of this document provides reproducible code for analyzing performance on an IAPS choice task completed only by new cohort subjects.  
 
@@ -60,10 +60,10 @@ Below is the code to read in the data. The directories chunk is specific to the 
 
 ```{r set directories}
 
-dirIAPS <- '~/Desktop/IAPS/IAPSdata/' #set the directory for IAPS data
-dirData <- '~/Desktop/IAPS/Subject Data/' #set the directory for subject data
-dirImageOrder <- '~/Desktop/IAPS/Subject Image Order/' #set the directory for image order
-dirRatings <- '~/Desktop/IAPS/RJT/ratings/' #for new cohort
+dirIAPS <- '~/Desktop/IAPS Synthesis/IAPS Data/' #set the directory for IAPS data
+dirData <- '~/Desktop/IAPS Synthesis/Subject Data/' #set the directory for subject data
+dirImageOrder <- '~/Desktop/IAPS Synthesis/Subject Image Order/' #set the directory for image order
+dirRatings <- '~/Desktop/IAPS Synthesis/RJT/ratings/' #for new cohort
 fileRatings <- dir_ls(dirRatings, glob = "*.txt.txt") #get the paths for the files that contain the string ".txt.txt". For new cohort.
 filesIAPS <- dir_ls(dirIAPS) #list the files in the IAPS directory
 filesData <- dir_ls(dirData) #list the files in the subject data directory
@@ -71,11 +71,11 @@ filesImageOrder <- dir_ls(dirImageOrder) #list the files in the image order dire
 
 ```
 
-```{r read data, message = FALSE, warning = FALSE}
+```{r read data ratings, message = FALSE, warning = FALSE}
 
 
 #Read in the demographics data
-demographics <- read_csv(file = "C:/Users/rachjone/Desktop/IAPS/Demographics/KLRIF_2018-07-09.csv")
+demographics <- read_csv(file = "~/Desktop/IAPS Synthesis/Demographics/KLRIF_2018-07-09.csv")
 
 #Import the IAPS key data set
 keyIAPS <- filesIAPS %>%
@@ -155,7 +155,7 @@ newCohortRatings <-
   
 #Read in and manipulate the new cohort demographics information. File path is
 #dependent on user's computer.
-newCohortDems <- read_csv(file = 'C:/Users/rachjone/Desktop/IAPS/RJT/demographics/IAPSdems.csv') %>%
+newCohortDems <- read_csv(file = '~/Desktop/IAPS Synthesis/RJT/demographics/IAPSdems.csv') %>%
   mutate(gender = case_when(gender == "female" ~ 0, 
                             gender == "male" ~ 1))
 
@@ -223,13 +223,15 @@ negativeRatings <- labeledOrderedSubjectData %>%
 #order column and join that with the IAPS key. Then join that with the
 #demographics info. Then remove NAs since there are some images participants saw
 #that are not standardized in the IAPS key (and one participant who has no
-#gender data and we exclude). The final data has 14 columns and 5640 rows and
-#consists of 120 positive and negative ratings from 47 subjects.
+#gender data and we exclude). We also exclude subject 1069 who did not have any
+#ratings (all 0s). The final data has 14 columns and 5640 rows and consists of
+#120 positive and negative ratings from 47 subjects.
 finalData <- full_join(positiveRatings, negativeRatings, by = c("IAPS", "subject", "form")) %>%
   select(-c(order.x, order.y)) %>%
   full_join(keyIAPS, by = c("IAPS", "form")) %>%
   full_join(tidyDems, by = "subject") %>%
   drop_na() %>%
+  filter(subject != "SFA_1069") %>%
   select(subject, age, gender, 
          form, IAPS, desc, 
          positive, negative, everything())
@@ -247,105 +249,9 @@ newCohortFinalData <- newCohortRatings %>%
 
 ```
 
-
-```{r read data, message=FALSE, warning=FALSE}
-#Import the IAPS key data set
-keyIAPS <- filesIAPS %>%
-  map_df(~read_csv(.x, na = c("", ".", NA),
-                   col_types = cols(IAPS = col_character())) %>%
-           select(desc:dom1sd) %>%
-           drop_na(),
-         .id = "form") %>%
-  mutate(form = case_when(str_detect(form, "1_IAPS") ~ 1,
-                          str_detect(form, "2_IAPS") ~ 2,
-                          str_detect(form, "3_IAPS") ~ 3,
-                          str_detect(form, "4_IAPS") ~ 4),
-         form = as.factor(form))
-
-#Read in subject rating
-subjectData <- filesData %>%
-  map_df(~read_csv(.x) %>%
-           rename(time = Timestamp,
-                  subject = `Subject ID:`),
-         .id = "form") %>%
-  mutate(form = case_when(str_detect(form, "1_SFA") ~ 1,
-                          str_detect(form, "2_SFA") ~ 2,
-                          str_detect(form, "3_SFA") ~ 3,
-                          str_detect(form, "4_SFA") ~ 4),
-           form = as.factor(form)) %>%
-  #pivot the data so all ratings are in a column "rating" instead of in their own rows.
-  pivot_longer(cols = -c(form, time, subject), values_to = "rating") %>%
-  select(-name) %>%
-  #have a running order for each subject
-  group_by(subject) %>%
-  mutate(order = row_number()) %>%
-  ungroup() %>%
-  #make this subjectID string match that of imageOrder
-  mutate(subject = str_replace(subject, "\\-", "\\_")) %>%
-  select(-time) %>%
-  #arrange by each subject and the form (so one subject goes through all four
-  #forms before moving to next subject)
-  arrange(subject, form)
-
-
-  imageOrder <- filesImageOrder %>%
-  map_df(~read_csv(.x),
-         .id = "form") %>%
-  mutate(form = case_when(str_detect(form, "1_pictureID") ~ 1,
-                          str_detect(form, "2_pictureID") ~ 2,
-                          str_detect(form, "3_pictureID") ~ 3,
-                          str_detect(form, "4_pictureID") ~ 4),
-         form = as.factor(form)) %>%
-  #pivot the data so all image values (IDs) are in a column "value"
-  pivot_longer(cols = -c(X1, form),
-               names_to = "subject") %>%
-  #remvoe subject prefix
-  mutate(subject = str_remove(.$subject, "\\d\\_")) %>%
-  #arrange by subject
-  arrange(subject) %>%
-  #remove NAs that appear because of how the data was read in where each form's
-  #image ID were basically in a new column for the subject with the prefix
-  #1_SFA_..."
-  drop_na() %>%
-  #have a running order for each subject, and remove the X1 column.
-  group_by(subject) %>%
-  mutate(order = row_number()) %>%
-  ungroup() %>%
-  select(-X1)
-
-#read in demographics
-demographics <- read_csv(file = 'C:/Users/rachjone/Desktop/IAPS/Demographics/KLRIF_2018-07-09.csv')
-  
-#tidy the demographics data
-tidyDems <- demographics %>%
-  rename(subject = "Subject ID", 
-         age = "Age (years)",
-         gender = "What is your gender?") %>%
-  mutate(subject = str_replace(subject, "\\-", "\\_"),
-         gender = recode(gender, "Male" = 1, "Female" = 0)) %>%
-  select(subject, age, gender)
-
-
-#join the imageOrder and subject data by subject, form, and order.
-orderedSubjectData <- full_join(imageOrder, subjectData, by = c("form", "subject", "order")) %>%
-  rename(picID = value)
-
-labeledOrderedSubjectData <- orderedSubjectData %>%
-  mutate(question = case_when(str_detect(picID, "P") ~ "positive",
-                              str_detect(picID, "N") ~ "negative",
-                              TRUE ~ "Oops"),
-         picID = str_remove_all(picID, "P|N")) %>%
-  rename(IAPS = picID)
-
-positiveRatings <- labeledOrderedSubjectData %>%
-  filter(question == "positive") %>%
-  pivot_wider(names_from = question, values_from = rating)
-
-negativeRatings <- labeledOrderedSubjectData %>%
-  filter(question == "negative") %>%
-  pivot_wider(names_from = question, values_from = rating) 
+```{r read data dem stuff}
 #Read raw demographic data that includes 84 subjects. 
-Dems <-read_csv(file = 'C:/Users/rachjone/Desktop/IAPS/SFA_demographics.csv')
+Dems <-read_csv(file = '~/Desktop/IAPS Synthesis/Demographics/SFA_demographics-downloaded-8-1-2020.csv')
 
 #Tidy the data and filter to only display demographic variables of interest (age, gender, race, ethnicity, history of psychiatric condition and medications, and current drug, alcohol, and smoking use.)
 tidyDems2 <- Dems %>%
@@ -358,10 +264,10 @@ tidyDems2 <- Dems %>%
   current_use_description = recode(current_use_description, "marijuana" = "Marijuana"),
   subject = str_replace(subject, "\\-", "\\_")) %>%
   filter(race == "1" | subject == "SFA_1034" | subject == "SFA_1039" | subject == "SFA_1049" | subject == "SFA_1071") %>%
-  distinct (subject, race, .keep_all = TRUE)
+  distinct(subject, race, .keep_all = TRUE)
 
 #Join table with the 47 subjects we used for our analyses. This gets rid of extra subjects we did not include for the old cohort (There were 84 total, and we only used 47 in our analyse). 
-finalData <- full_join(positiveRatings, negativeRatings, by = c("IAPS", "subject", "form")) %>%
+demFinalData <- full_join(positiveRatings, negativeRatings, by = c("IAPS", "subject", "form")) %>%
   select(-c(order.x, order.y)) %>%
   full_join(keyIAPS, by = c("IAPS", "form")) %>%
   full_join(tidyDems, by = "subject") %>%
@@ -370,7 +276,7 @@ finalData <- full_join(positiveRatings, negativeRatings, by = c("IAPS", "subject
          form, IAPS, desc, 
          positive, negative, everything())
 
-finalData2 <- finalData %>%
+finalData2 <- demFinalData %>%
  select(-c(age:dom1sd)) %>%
  distinct()
 
@@ -383,41 +289,56 @@ DemJoin$drugs_current <- as.numeric(DemJoin$drugs_current)
 
 #Create output table. 
 dem.tab <- DemJoin %>%
-mutate(name=ifelse(race == "0",NA,name),
+mutate(name = ifelse(race == "0", NA, name),
   condition_description = recode(condition_description, "Generalized Anxiety Disorder" = "Anxiety", "depression, anxiety, eating disorder" = "Depression & Anxiety", "Depression, Bulimia Nervosa" = "Depression &  Bulimia Nervosa")) %>%
   select(-race) %>%
   rename(race = name) 
 
 head(dem.tab)
+
+
+#Pivot dem.tab longer so the drugs stuff is all in one thing
+dem.tab <- dem.tab %>% pivot_longer(cols = contains("_current")) %>%
+  rename(drugs = name) %>%
+  mutate(drugs = recode(drugs, 
+                       "smoke_current" = "Cigarettes", 
+                       "alcohol_current" = "Alcohol",
+                       "drugs_current" = "Marijuana"),
+         value = recode(value, `0` = "No", `1` = "Yes"))
+
 ```
 
 Below is a summary of the demographics variables from our original 47-subject IAPS cohort (2018). 
 ```{r asdf, warning = FALSE}
 
-myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face = "bold.italic", size=16), #plot title aesthetics
-                   plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12), #plot subtitle aesthetics
-                   axis.title.x = ggplot2::element_text(size = 12, color= "black", face = "bold"), #x axis title aesthetics
-                   axis.title.y = ggplot2::element_text(size = 12, color= "black", face = "bold"), #y axis title aesthetics
-                   axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5, size = 12),
+myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face = "bold.italic", size=12), #plot title aesthetics
+                   plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "bold", size = 8), #plot subtitle aesthetics
+                   axis.title.x = ggplot2::element_text(size = 8, color= "black", face = "bold"), #x axis title aesthetics
+                   axis.title.y = ggplot2::element_text(size = 8, color= "black", face = "bold"), #y axis title aesthetics
+                   axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5, size = 8),
                    #legend aesthetics
-                   legend.title = ggplot2::element_text(size= 14,
+                   legend.title = ggplot2::element_text(size= 10,
                                     color = "black",
                                     face = "bold"),
                    legend.title.align = 0.5,
-                   legend.text = ggplot2::element_text(size = 10,
+                   legend.text = ggplot2::element_text(size = 8,
                                               color = "black",
                                               face = "bold"),
                    legend.text.align = 0)
 
-raceCount <- dem.tab %>% count(race) %>%
+raceCount <- dem.tab %>% count(subject, race) %>%
   drop_na() %>%
-  mutate(race = fct_reorder(race, desc(n))) %>%
+  distinct(subject, race) %>%
+  count(race) %>%
+  mutate(race = fct_reorder(race, desc(n)),
+         percent = round((n / 47),3) * 100) %>%
   ggplot(aes(x = race, y = n, fill = race)) +
   geom_col() +
+  geom_text(position = position_dodge(width = 0.9), aes(label = glue::glue("{percent}%"), vjust = -0.5)) +
   labs(y = "Count",
        x = "Race",
        #caption = "Four subjects were removed because they ommitted their race.",
-       title = "Subject Race Demographic",
+       title = "Race",
        subtitle = "Original Cohort") +
   myGGTheme +
   scale_x_discrete(labels = c("White", "Black", "Asian", "Other")) +
@@ -427,12 +348,14 @@ raceCount <- dem.tab %>% count(race) %>%
         panel.grid.major = element_blank(),
         panel.grid.minor = element_line(color = "lightblue1"))
 
-ageCount <- dem.tab %>% select(age) %>% 
+ageCount <- dem.tab %>% group_by(subject) %>% distinct(age) %>%
+  ungroup() %>%
+  select(age) %>%
   ggplot(aes(x = age, fill = "red")) + 
   geom_histogram(binwidth = 2) +
   labs(y = "Count", 
        x = "Age (years)",
-       title = "Subject Age Demographic",
+       title = "Age",
        subtitle = "Original Cohort") +
   myGGTheme +
   theme(legend.position = "none",
@@ -441,12 +364,16 @@ ageCount <- dem.tab %>% select(age) %>%
         panel.grid.major = element_blank(),
         panel.grid.minor = element_line(color = "lightblue1"))
 
-genderCount <- dem.tab %>% count(gender) %>%
+genderCount <- dem.tab %>% count(subject, gender) %>% 
+  distinct(subject, gender) %>% 
+  count(gender) %>%
+  mutate(percent = round((n / 47),3) * 100) %>%
   ggplot(aes(x = gender, y = n, fill = gender)) +
   geom_col() +
+  geom_text(position = position_dodge(width = 0.9), aes(label = glue::glue("{percent}%"), vjust = -0.5)) +
   labs(y = "Count",
        x = "Gender",
-       title = "Subject Gender Demographic",
+       title = "Gender",
        subtitle = "Original Cohort") +
   myGGTheme +
   scale_x_discrete(labels = c("Female", "Male")) +
@@ -456,81 +383,113 @@ genderCount <- dem.tab %>% count(gender) %>%
         panel.grid.major = element_blank(),
         panel.grid.minor = element_line(color = "lightblue1"))
   
-psychCondtionCount <- dem.tab %>% count(condition_description) %>%
+psychCondtionCount <- dem.tab %>% count(subject, condition_description) %>%
+  mutate(condition_description = case_when(condition_description == "Anxiety" ~ "Anxiety",
+                                           str_detect(condition_description, "Depression") ~ "Depression\nComorbid", 
+                                           TRUE ~ "None")) %>%
   drop_na() %>%
-  mutate(condition_description = fct_reorder(condition_description, desc(n))) %>%
+  distinct(subject, condition_description) %>%
+  count(condition_description) %>%
+  mutate(percent = round((n / 47),3) * 100,
+         condition_description = fct_reorder(condition_description, desc(n))) %>%
   ggplot(aes(x = condition_description, y = n, fill = condition_description)) +
   geom_col() +
+  geom_text(position = position_dodge(width = 0.9), aes(label = glue::glue("{percent}%"), vjust = -0.5)) +
   labs(y = "Count",
        x = "Psychiatric Condition",
-       title = "Subject Psychiatric Condition Demographic",
+       title = "Psychiatric Conditions",
        subtitle = "Original Cohort") +
   myGGTheme +
   theme(legend.position = "none",
         panel.background = element_rect(fill = "aliceblue"),
         plot.background = element_rect(fill = "aliceblue"),
         panel.grid.major = element_blank(),
-        panel.grid.minor = element_line(color = "lightblue1"))
+        panel.grid.minor = element_line(color = "lightblue1"),
+        axis.text.x = element_text(angle = 0)) +
+  coord_cartesian(ylim = c(0,45))
 
-alcoholCount <- dem.tab %>% count(alcohol_current) %>%
-  drop_na() %>%
-  ggplot(aes(x = alcohol_current, y = n, fill = alcohol_current)) +
-  geom_bar(stat = "identity") +
-  geom_col() +
-  labs(y = "Count",
-       x = "Current Alcohol Users",
-       title = "Subject Alcohol Use Demographic",
-       subtitle = "Original Cohort") +
+
+# 
+# alcoholCount <- dem.tab %>% count(alcohol_current) %>%
+#   drop_na() %>%
+#   ggplot(aes(x = alcohol_current, y = n, fill = alcohol_current)) +
+#   geom_bar(stat = "identity") +
+#   geom_col() +
+#   labs(y = "Count",
+#        x = "Current Alcohol Users",
+#        title = "Subject Alcohol Use Demographic",
+#        subtitle = "Original Cohort") +
+#   myGGTheme +
+#   scale_x_discrete(limits= "Yes", "No") +
+#   theme(legend.position = "none",
+#         panel.background = element_rect(fill = "aliceblue"),
+#         plot.background = element_rect(fill = "aliceblue"),
+#         panel.grid.major = element_blank(),
+#         panel.grid.minor = element_line(color = "lightblue1"))
+# 
+# drugsCount <- dem.tab %>% count(drugs_current) %>%
+#   drop_na() %>%
+#   ggplot(aes(x = drugs_current, y = n, fill = drugs_current)) +
+#   geom_bar(stat = "identity") +
+#   geom_col() +
+#   labs(y = "Count",
+#        x = "Current Marijuana Users",
+#        title = "Subject Marijuana Use Demographic",
+#        subtitle = "Original Cohort") +
+#   myGGTheme +
+#   scale_x_discrete(limits= "Yes", "No") +
+#   theme(legend.position = "none",
+#         panel.background = element_rect(fill = "aliceblue"),
+#         plot.background = element_rect(fill = "aliceblue"),
+#         panel.grid.major = element_blank(),
+#         panel.grid.minor = element_line(color = "lightblue1"))
+# 
+# smokeCount <- dem.tab %>% count(smoke_current) %>%
+#   drop_na() %>%
+#   ggplot(aes(x = smoke_current, y = n, fill = smoke_current)) +
+#   geom_bar(stat = "identity") +
+#   geom_col() +
+#   labs(y = "Count",
+#        x = "Current Smokers",
+#        title = "Subject Smoking Demographic",
+#        subtitle = "Original Cohort") +
+#   myGGTheme +
+#   scale_x_discrete(labels = c("Yes", "No")) +
+#   theme(legend.position = "none",
+#         panel.background = element_rect(fill = "aliceblue"),
+#         plot.background = element_rect(fill = "aliceblue"),
+#         panel.grid.major = element_blank(),
+#         panel.grid.minor = element_line(color = "lightblue1"))
+
+drugsPlot <- dem.tab %>% count(drugs, value) %>% 
+  mutate(percent = round((n / 47),3) * 100) %>% #  %>%
+  ggplot(aes(x = drugs, y = n, fill = value)) +
+  geom_col(position = "dodge") +
+  geom_text(position = position_dodge(width = 0.9), aes(label = glue::glue("{percent}%"), vjust = -0.5)) +
+  labs(title = "Drug Use",
+       subtitle = "Original Cohort",
+       x = "Drug Type",
+       y = "Count",
+       fill = "Response") +
   myGGTheme +
-  scale_x_discrete(limits= "Yes", "No") +
-  theme(legend.position = "none",
-        panel.background = element_rect(fill = "aliceblue"),
+  theme(panel.background = element_rect(fill = "aliceblue"),
         plot.background = element_rect(fill = "aliceblue"),
         panel.grid.major = element_blank(),
-        panel.grid.minor = element_line(color = "lightblue1"))
-
-drugsCount <- dem.tab %>% count(drugs_current) %>%
-  drop_na() %>%
-  ggplot(aes(x = drugs_current, y = n, fill = drugs_current)) +
-  geom_bar(stat = "identity") +
-  geom_col() +
-  labs(y = "Count",
-       x = "Current Marijuana Users",
-       title = "Subject Marijuana Use Demographic",
-       subtitle = "Original Cohort") +
-  myGGTheme +
-  scale_x_discrete(limits= "Yes", "No") +
-  theme(legend.position = "none",
-        panel.background = element_rect(fill = "aliceblue"),
-        plot.background = element_rect(fill = "aliceblue"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_line(color = "lightblue1"))
-
-smokeCount <- dem.tab %>% count(smoke_current) %>%
-  drop_na() %>%
-  ggplot(aes(x = smoke_current, y = n, fill = smoke_current)) +
-  geom_bar(stat = "identity") +
-  geom_col() +
-  labs(y = "Count",
-       x = "Current Smokers",
-       title = "Subject Smoking Demographic",
-       subtitle = "Original Cohort") +
-  myGGTheme +
-  scale_x_discrete(labels = c("Yes", "No")) +
-  theme(legend.position = "none",
-        panel.background = element_rect(fill = "aliceblue"),
-        plot.background = element_rect(fill = "aliceblue"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_line(color = "lightblue1"))
+        panel.grid.minor = element_line(color = "lightblue1"),
+        legend.background = element_rect(fill = "aliceblue"))
 
 
-(raceCount | ageCount | genderCount)/ (alcoholCount | drugsCount | smokeCount)/ psychCondtionCount
+
+(raceCount | ageCount | genderCount)
+
+(drugsPlot + psychCondtionCount)
+
 
 ``` 
 
 Below, we can see a preview of the data on which we will fit regression models. The first table shows the first 10 rows for subject SFA_1025 from the original cohort. The second table shows the first 10 rows for subject IAPS_B_01. The age column is in years, gender is binary (0 for females 1 for males for use in regression analysis), IAPS column is the picture ID. The desc column is a description of the IAPS images. The positive and negative columns show the subject's ratings when asked "How positive does this image make you feel?" and "How negative does this image make you feel?". The remaining columns describe the mean and standard deviation for the image's standardized valence, arousal, and dominance, per the IAPS dataset.
 
-```{r preview, cols.print = 7, echo = FALSE}
+```{r preview, cols.print = 7, echo = FALSE, fig.cap = "Final Data Blah aASf"}
 
 #preview the regression data frame for subject SFA_1025
 head(finalData, 10)
@@ -544,20 +503,40 @@ head(newCohortFinalData, 10)
 
 #### Methods and Code
 
-Using both the `tidymodels` framework in R and the `caret` package in R, we tuned an elastic net regression with a wide array of alpha (0 to 1) and lambda (0 to 200) values using six fold and ten fold cross validation. Our response variable was the mean rating of valence, arousal, or dominance, per the IAPS dataset. Our predictors were subjects' positive and negative ratings (and the interaction between them), age, and gender. We looked at the root mean squared error (rmse), mean absolute error (mae), and the $R^2$ metrics to evaluate model fit on a dataset of `r params$numSubjects` subjects whose ratings were collected during the summer of 2020 (new cohort). These indicated that a regular linear regression performed best. We used both the `caret` package to perform 10 fold cross validation on the data, and the `lm` function in R fit on the entire dataset. The linear models performed equally well independent of cross validation. It should also be noted that we tested the linear model without the interaction between positive and negative ratings and it performed worse on all metrics. Included are code snippets for performing linear regressions using `lm` and `caret`. Elastic net regression code is included but model coefficients are not explicitly reported.
+Using both the `tidymodels` framework in R and the `caret` package in R, we tuned an elastic net regression with a wide array of alpha (0 to 1) and lambda (0 to 200) values using six fold and ten fold cross validation. Our response variable was the mean rating of valence, arousal, or dominance, per the IAPS dataset. Our predictors were subjects' positive and negative ratings (and the interaction between them), age, and gender. We looked at the root mean squared error (rmse), mean absolute error (mae), and the $R^2$ metrics to evaluate model fit on a dataset of `r params$numSubjects` subjects whose ratings were collected during the summer of 2020 (new cohort). These indicated that a regular linear regression performed best. We used both the `caret` package to perform 10 fold cross validation on the data, and the `lm` function in R fit on the entire dataset. The linear models performed equally well independent of cross validation. It should also be noted that we tested the linear model without the interaction between positive and negative ratings and it performed worse on all metrics. Included are code snippets for performing linear regressions using `lm` and `caret`. Elastic net regression code is included for valence, but model coefficients are not explicitly reported.
 
 ```{r model set up - interact, eval = FALSE}
 
-#create a recipe object -- simply describing the formula to fit for predicting
-#the mean valence from the positive and negative ratings. THEN add the
-#interaction between positive and negative.
-interactRec <- recipe(valmn ~ positive + negative + age + gender, data = train) %>%
-  step_interact(terms = ~ positive:negative)
+#set a seed
+set.seed(18)
 
+#split the data into 75% training, 25% testing.
+split <- initial_split(finalData)
+#pull training data
+train <- training(split)
+#pull testing data
+test <- testing(split)
+#create 6 cross fold validation objects on the training data
+CVtraining <- vfold_cv(train, v = 6)
+
+#create a recipe object -- simply describing the formula to fit for predicting
+#the mean valence from the positive and negative ratings.
+netRec <- recipe(valmn ~ positive + negative + age + gender, data = train) %>%
+   step_interact(terms = ~ positive:negative)
+
+#Create a grid to tune the model for penalty and mixture (lambda and alpha) in
+#an elastic net regression.
+netGrid <- expand_grid(penalty = c(seq(0, 1, by = 0.01), seq(2,10, by = 1), seq(20, 100, by = 10)),
+                       mixture = seq(0,1, by = 0.01))
+
+#create a model specification -- a linear regression that tunes penalty and
+#mixture. use the glmnet package
+netSpec <- linear_reg(penalty = tune(), mixture = tune()) %>%
+  set_engine("glmnet")
 
 #create a workflow object with the recipe and model specification
 wfInteract <- workflow() %>%
-  add_recipe(interactRec) %>%
+  add_recipe(netRec) %>%
   add_model(netSpec)
 
 ```
@@ -610,7 +589,7 @@ netTunedInteract %>%
 bestMetricsInteract <- netTunedInteract %>% select_best(metric = "rmse")
 
 #finalize the workflow with the best interact metrics
-finalWFInteract <- finalize_workflow(wf, parameters = bestMetricsInteract)
+finalWFInteract <- finalize_workflow(wfInteract, parameters = bestMetricsInteract)
 
 #save last fit
 testFitInteract <- last_fit(finalWFInteract, split = split)
@@ -984,8 +963,8 @@ PE %>%
  The choice game was a 150-trial two-choice probabilistic reward task with emotionally-stimulating images from the IAPS database used as reinforcers. Each trial began with presentation of two icons on a computer screen, and participants were required to choose between them using a Logitech gaming controller. A total of 58 icons were randomly selected to be in one of six groups, with six unique icons per group (Table 1). Within each group, icons held fixed probabilities of displaying positive, neutral, or negative images as outcomes. The game was divided into three phases that the icon groups corresponded to, with 25 trails in phase one, 50 trails in phase 2, and 75 trials in phase 3 (Table 2). 
 
 
-```{r table 1, include = TRUE}
-IAPSgroups1 <- read_csv('C:/Users/rachjone/Desktop/IAPS/Tables/IAPSgroups.csv')
+```{r table 1, include = TRUE, eval = FALSE}
+IAPSgroups1 <- read_csv('~/Desktop/IAPS Synthesis/Figure Info/IAPSgroups.csv')
 
 flex <- flextable(head(IAPSgroups1)) %>%
 set_header_labels(Group = "Group", Probabilities = "Probabilities") %>%
@@ -1002,8 +981,8 @@ autofit()
 plot(flex)
 ```
 
-```{r table 2, include = TRUE}
-IAPSphases1 <- read_csv('C:/Users/rachjone/Desktop/IAPS/Tables/IAPSphases.csv')
+```{r table 2, include = TRUE, eval = FALSE}
+IAPSphases1 <- read_csv('~/Desktop/IAPS Synthesis/Figure Info/IAPSphases.csv')
 
 flex1 <- flextable(head(IAPSphases1)) %>%
   set_header_labels(Phase = "Phase", Trials = "Trials", Associated.Groups = "Associated Groups", Description = "Description") %>%
@@ -1025,7 +1004,7 @@ Phase one held positive-only icons, where fixed probabilities of showing positiv
   
 Participants were instructed to select their preferred icon and told that different types of images would be presented dependent upon their choice (Figure 1). They were not given instructions on the relationship between icons and images or the goal of the experiment. Before and after the game, participants were asked to select one of two icons they prefer with no image outcome. This was important to determine if certain characteristics of icons (i.e. color, laterality) influenced participants' choices throughout the game or if this changed because of image outcome.
 
-<! -- ![Figure 1: Schematic of one trial in IAPS choice game.](C:/Users/rachjone/Pictures/Screenshots/Screenshot (686).png) --> 
+![Figure 1: Schematic of one trial in IAPS choice game.](TrialGraphic.png)
   
 ### Read in the Data
 
@@ -1033,7 +1012,7 @@ Below, we read in the data and preview the raw text file output from the choice 
 
 ```{r read in data, cols.print = 2, message = FALSE, warning = FALSE}
 
-choiceFiles <- dir_ls('~/Desktop/IAPS/RJT/choice/', glob = "*.txt.txt") #get the paths for the files that contain the string ".txt.txt". For new cohort.
+choiceFiles <- dir_ls('~/Desktop/IAPS Synthesis/RJT/choice/', glob = "*.txt.txt") #get the paths for the files that contain the string ".txt.txt". For new cohort.
 
 rawChoiceData <- map(choiceFiles, ~readChoices(.x), .id = "subject")
 

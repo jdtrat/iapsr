@@ -16,7 +16,7 @@ output:
     highlight: monochrome
     code_folding: hide
 params:
-  numSubjects: 5
+  numSubjects: 6
 ---
 
 ```{r setup, include = FALSE}
