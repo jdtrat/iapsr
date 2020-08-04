@@ -28,6 +28,7 @@ library(fs)
 library(tictoc)
 library(vip)
 library(caret)
+library(flextable)
 library(iapsr) #our package, woohoo!
 
 myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face = "bold.italic", size=16), #plot title aesthetics
@@ -165,7 +166,7 @@ newCohortDems <- read_csv(file = '~/Desktop/IAPS Synthesis/RJT/demographics/IAPS
 
 This section describes how we tidied the data in order to get it in a format to perform the elastic net regression. Please see code comments for more details.
 
-```{r tidy data}
+```{r tidy data, warning = FALSE, message = FALSE}
 
 #tidy the demographics data
 tidyDems <- demographics %>%
@@ -249,7 +250,7 @@ newCohortFinalData <- newCohortRatings %>%
 
 ```
 
-```{r read data dem stuff}
+```{r read data dem stuff, warning = FALSE, message = FALSE}
 #Read raw demographic data that includes 84 subjects. 
 Dems <-read_csv(file = '~/Desktop/IAPS Synthesis/Demographics/SFA_demographics-downloaded-8-1-2020.csv')
 
@@ -383,7 +384,8 @@ genderCount <- dem.tab %>% count(subject, gender) %>%
         panel.grid.major = element_blank(),
         panel.grid.minor = element_line(color = "lightblue1"))
   
-psychCondtionCount <- dem.tab %>% count(subject, condition_description) %>%
+psychCondtionCount <- dem.tab %>% 
+  count(subject, condition_description) %>%
   mutate(condition_description = case_when(condition_description == "Anxiety" ~ "Anxiety",
                                            str_detect(condition_description, "Depression") ~ "Depression\nComorbid", 
                                            TRUE ~ "None")) %>%
@@ -408,64 +410,11 @@ psychCondtionCount <- dem.tab %>% count(subject, condition_description) %>%
         axis.text.x = element_text(angle = 0)) +
   coord_cartesian(ylim = c(0,45))
 
-
-# 
-# alcoholCount <- dem.tab %>% count(alcohol_current) %>%
-#   drop_na() %>%
-#   ggplot(aes(x = alcohol_current, y = n, fill = alcohol_current)) +
-#   geom_bar(stat = "identity") +
-#   geom_col() +
-#   labs(y = "Count",
-#        x = "Current Alcohol Users",
-#        title = "Subject Alcohol Use Demographic",
-#        subtitle = "Original Cohort") +
-#   myGGTheme +
-#   scale_x_discrete(limits= "Yes", "No") +
-#   theme(legend.position = "none",
-#         panel.background = element_rect(fill = "aliceblue"),
-#         plot.background = element_rect(fill = "aliceblue"),
-#         panel.grid.major = element_blank(),
-#         panel.grid.minor = element_line(color = "lightblue1"))
-# 
-# drugsCount <- dem.tab %>% count(drugs_current) %>%
-#   drop_na() %>%
-#   ggplot(aes(x = drugs_current, y = n, fill = drugs_current)) +
-#   geom_bar(stat = "identity") +
-#   geom_col() +
-#   labs(y = "Count",
-#        x = "Current Marijuana Users",
-#        title = "Subject Marijuana Use Demographic",
-#        subtitle = "Original Cohort") +
-#   myGGTheme +
-#   scale_x_discrete(limits= "Yes", "No") +
-#   theme(legend.position = "none",
-#         panel.background = element_rect(fill = "aliceblue"),
-#         plot.background = element_rect(fill = "aliceblue"),
-#         panel.grid.major = element_blank(),
-#         panel.grid.minor = element_line(color = "lightblue1"))
-# 
-# smokeCount <- dem.tab %>% count(smoke_current) %>%
-#   drop_na() %>%
-#   ggplot(aes(x = smoke_current, y = n, fill = smoke_current)) +
-#   geom_bar(stat = "identity") +
-#   geom_col() +
-#   labs(y = "Count",
-#        x = "Current Smokers",
-#        title = "Subject Smoking Demographic",
-#        subtitle = "Original Cohort") +
-#   myGGTheme +
-#   scale_x_discrete(labels = c("Yes", "No")) +
-#   theme(legend.position = "none",
-#         panel.background = element_rect(fill = "aliceblue"),
-#         plot.background = element_rect(fill = "aliceblue"),
-#         panel.grid.major = element_blank(),
-#         panel.grid.minor = element_line(color = "lightblue1"))
-
 drugsPlot <- dem.tab %>% count(drugs, value) %>% 
-  mutate(percent = round((n / 47),3) * 100) %>% #  %>%
+  mutate(percent = round((n / 47),3) * 100) %>% 
   ggplot(aes(x = drugs, y = n, fill = value)) +
-  geom_col(position = "dodge") +
-  geom_text(position = position_dodge(width = 0.9), aes(label = glue::glue("{percent}%"), vjust = -0.5)) +
+  geom_col(position = position_dodge2(preserve = "single")) +
+  geom_text(position = position_dodge2(width = 0.9, preserve = "single"), aes(label = glue::glue("{percent}%"), vjust = -0.5, hjust = 0.36)) +
   labs(title = "Drug Use",
        subtitle = "Original Cohort",
        x = "Drug Type",
@@ -960,43 +909,41 @@ PE %>%
 
 ### Task Description
 
- The choice game was a 150-trial two-choice probabilistic reward task with emotionally-stimulating images from the IAPS database used as reinforcers. Each trial began with presentation of two icons on a computer screen, and participants were required to choose between them using a Logitech gaming controller. A total of 58 icons were randomly selected to be in one of six groups, with six unique icons per group (Table 1). Within each group, icons held fixed probabilities of displaying positive, neutral, or negative images as outcomes. The game was divided into three phases that the icon groups corresponded to, with 25 trails in phase one, 50 trails in phase 2, and 75 trials in phase 3 (Table 2). 
+The choice game was a 150-trial two-choice probabilistic reward task with emotionally-stimulating images from the IAPS database used as reinforcers. These reinforcers were split up into six different reinforcer groups based on the Z scores of the old cohort's average positive rating for each image. Each trial began with presentation of two icons on a computer screen, and participants were required to choose between them using a Logitech gaming controller. A total of 58 icons were randomly selected to be in one of six groups, with six unique icons per group (Table 1). Within each group, icons held fixed probabilities of displaying positive, neutral, or negative images as outcomes. The game was divided into three phases that the icon groups corresponded to, with 25 trails in phase one, 50 trails in phase 2, and 75 trials in phase 3 (Table 2). 
 
 
-```{r table 1, include = TRUE, eval = FALSE}
+```{r table 1, include = TRUE, warning = FALSE, message = FALSE}
 IAPSgroups1 <- read_csv('~/Desktop/IAPS Synthesis/Figure Info/IAPSgroups.csv')
 
-flex <- flextable(head(IAPSgroups1)) %>%
+flextable(head(IAPSgroups1)) %>%
 set_header_labels(Group = "Group", Probabilities = "Probabilities") %>%
 theme_vanilla() %>%
 align(align = "center", part = "all") %>%
 bg(bg = "cyan3", part = "header") %>%
-bg(bg = "snow3", part = "body") %>%
+border_outer(border = officer::fp_border()) %>%
 color(color = "black", part = "all") %>%
 bold(bold = TRUE, part = "header") %>%
 fontsize(size = 14, part = "all") %>%
 set_caption("Table 1: Icon Groupings") %>%
 autofit()
 
-plot(flex)
 ```
 
-```{r table 2, include = TRUE, eval = FALSE}
+```{r table 2, include = TRUE, warning = FALSE, message = FALSE}
 IAPSphases1 <- read_csv('~/Desktop/IAPS Synthesis/Figure Info/IAPSphases.csv')
 
-flex1 <- flextable(head(IAPSphases1)) %>%
+flextable(head(IAPSphases1)) %>%
   set_header_labels(Phase = "Phase", Trials = "Trials", Associated.Groups = "Associated Groups", Description = "Description") %>%
   theme_vanilla() %>%
   align(align = "center", part = "all") %>%
   bg(bg = "coral2", part = "header") %>%
-  bg(bg = "snow3", part = "body") %>%
   color(color = "black", part = "all") %>%
   bold(bold = TRUE, part = "header") %>%
   fontsize(size = 14, part = "all") %>%
+  border_outer(border = officer::fp_border()) %>%
   set_caption("Table 2: Description of Phases in IAPS Choice Game") %>%
   autofit()
 
-plot(flex1)
 ```
 
 Phase one held positive-only icons, where fixed probabilities of showing positive images were pre-determined per icon (i.e. 25%, 50%, and 75% vs neutral). Phase two introduced negative-only icons with similar fixed probabilities of showing negative images per icon. In these phases, each round showed pairs of positive icons or pairs of negative icons exclusively. However, in phase 3, all icons were mixed so that any round may have consisted of two positive icons, two negative icons, or one positive and one negative icon. In this phase, outcome magnitudes changed giving rise to higher-complexity positive and negative images. That is, our selected positive and negative images were not equidistant from zero, but rather varied in complexity according to phase number. The probabilities associated with each icon remained the same throughout the game, meaning the expected value of each option is altered by phase 3. We employed this phase transition to understand temporal learning effects from images that vary in reward and complexity. The IAPS images used are presented in Appendix A according to valence, dominance, and arousal. 
@@ -1051,7 +998,7 @@ Below, we tidy the data using the `iapsr` function `processChoiceData` and previ
 
 * percentOptimal: The cumulative sum of optimal choices divided by the total round (1-150).
 
-```{r tidy data - choice task, cols.print = 7}
+```{r tidy data - choice task, cols.print = 7, warning = FALSE, message = FALSE}
 
 finalChoiceData <- map_df(rawChoiceData, ~processChoiceData(.x), .id = "subject") %>%
   mutate(subject = str_extract(subject, "[:graph:]{9}(?=choice.txt)"))
