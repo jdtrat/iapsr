@@ -1,6 +1,6 @@
 ---
 title: "IAPS Synthesis Document"
-author: "Jonathan Trattner, Rachel Jones, and Delaney Teceno"
+author: "Rachel Jones & Jonathan Trattner"
 date: "Last compiled on `r format(Sys.time(), '%B %d, %Y')`"
 output: 
   html_document:
@@ -14,7 +14,7 @@ output:
     highlight: monochrome
     code_folding: hide
 params:
-  numSubjects: 6
+  numSubjects: 9
 ---
 
 
@@ -114,7 +114,8 @@ subjectData <- filesData %>%
   select(-time) %>%
   #arrange by each subject and the form (so one subject goes through all four
   #forms before moving to next subject)
-  arrange(subject, form)
+  arrange(subject, form) %>%
+  filter(subject != "SFA_1069")
 
 
   imageOrder <- filesImageOrder %>%
@@ -179,7 +180,8 @@ tidyDems <- demographics %>%
   mutate(subject = str_replace(subject, "\\-", "\\_"),
          gender = recode(gender, "Male" = 1, "Female" = 0)) %>%
   #select only relevant variables
-  select(subject, age, gender)
+  select(subject, age, gender) %>%
+  filter(subject != "SFA_1069")
 
 
 #join the imageOrder and subject data by subject, form, and order.
@@ -265,6 +267,7 @@ tidyDems2 <- Dems %>%
   current_use_description = recode(current_use_description, "marijuana" = "Marijuana"),
   subject = str_replace(subject, "\\-", "\\_")) %>%
   filter(race == "1" | subject == "SFA_1034" | subject == "SFA_1039" | subject == "SFA_1049" | subject == "SFA_1071") %>%
+  filter(subject != "SFA_1069") %>%
   distinct(subject, race, .keep_all = TRUE)
 
 #Join table with the 47 subjects we used for our analyses. This gets rid of extra subjects we did not include for the old cohort (There were 84 total, and we only used 47 in our analyse). 
@@ -293,10 +296,8 @@ dem.tab <- DemJoin %>%
 mutate(name = ifelse(race == "0", NA, name),
   condition_description = recode(condition_description, "Generalized Anxiety Disorder" = "Anxiety", "depression, anxiety, eating disorder" = "Depression & Anxiety", "Depression, Bulimia Nervosa" = "Depression &  Bulimia Nervosa")) %>%
   select(-race) %>%
-  rename(race = name) 
-
-head(dem.tab)
-
+  rename(race = name) %>%
+  filter(subject != "SFA_1069")
 
 #Pivot dem.tab longer so the drugs stuff is all in one thing
 dem.tab <- dem.tab %>% pivot_longer(cols = contains("_current")) %>%
@@ -365,10 +366,11 @@ ageCount <- dem.tab %>% group_by(subject) %>% distinct(age) %>%
         panel.grid.major = element_blank(),
         panel.grid.minor = element_line(color = "lightblue1"))
 
-genderCount <- dem.tab %>% count(subject, gender) %>% 
+genderCount <- dem.tab %>% count(subject, gender) %>%
   distinct(subject, gender) %>% 
   count(gender) %>%
-  mutate(percent = round((n / 47),3) * 100) %>%
+  mutate(percent = round((n / 47),3) * 100,
+         gender = recode(gender, `1` = "Male", `0` = "Female")) %>%
   ggplot(aes(x = gender, y = n, fill = gender)) +
   geom_col() +
   geom_text(position = position_dodge(width = 0.9), aes(label = glue::glue("{percent}%"), vjust = -0.5)) +
