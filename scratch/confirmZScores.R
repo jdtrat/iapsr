@@ -146,7 +146,7 @@ getClasses <- function(data, meanValence = FALSE) {
                            pos1,
                            neg1,
                            most) %>%
-    transmute(IAPS = as.character(IAPS),
+    mutate(IAPS = as.character(IAPS),
            class = case_when(class == "1.5" ~ "1.50",
                              class == "0.5" ~ "0.50",
                              TRUE ~ class))
@@ -231,3 +231,17 @@ getAngelaClasses() %>% anti_join(getClasses(totalDataOutput, meanValence = TRUE)
 #Test to see which images are in our classes but not Angela's
 #when organized by mean valence instead of mean positive ratings
 getClasses(totalDataOutput, meanValence = TRUE) %>% anti_join(getAngelaClasses())
+
+
+
+#Get the mean valence for each class using the valmn outcome to arrange the classes.
+valRatingMeans <- getClasses(totalDataOutput, meanValence = TRUE) %>% group_by(class) %>% summarize(meanValmn = mean(valmn))
+
+#Get the mean valence for each class using the posRating outcome to arrange the classes.
+posRatingMeans <- getClasses(totalDataOutput, meanValence = FALSE) %>% group_by(class) %>% summarize(meanPosmn = mean(valmn))
+
+#Combine the different class mean valences and look at the differences.
+#meanValmn is the mean valence for each class using the valmn outcome
+#meanPosmn is the mean valence for each class using the posRating outcome.
+diffRatingSchemes <- left_join(valRatingMeans, posRatingMeans) %>%
+  mutate(diff = meanValmn - meanPosmn)
