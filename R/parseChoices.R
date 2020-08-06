@@ -22,16 +22,18 @@ readChoices <- function(filePath) {
 #' This function takes the data column from the output of
 #' \code{\link{readChoices}} and separates the three phases of the task, saving
 #' them to the environment \code{phrase}, which is initialized behind the
-#' scenes. This function \strong{must} be run in order to use the other
+#' scenes. It also separates the initial icon rating phase and the final icon
+#' rating phase. This function \strong{must} be run in order to use the other
 #' functions that parse the choice data. If it is not, the phases will need to
 #' be isolated by hand and assigned to the phase environment (or local/global
 #' variables). See the \emph{Details} section for more how to access the three
 #' phases.
 #'
-#' The three phases of the task may be accessed by calling the variables:
+#' The task and icon rating phases may be accessed by calling the variables:
 #' \itemize{ \item \code{phase$one} \item \code{phase$two} \item
-#' \code{phase$three} }
+#' \code{phase$three} \item \code{phase$initIcon} \item \code{phase$finalIcon}}
 #'
+#' @importFrom rlang .data
 #' @param data The data output from \code{\link{readChoices}}
 #'
 #' @export
@@ -40,41 +42,64 @@ readChoices <- function(filePath) {
 getPhases <- function(data) {
 
   data <- data %>%
-    dplyr::select(data) %>%
+    dplyr::select(.data$data) %>%
     dplyr::mutate(row = dplyr::row_number())
 
+  startInitIcon <- data %>%
+    dplyr::filter(stringr::str_detect(.data$data, "starting game")) %>%
+    dplyr::select(.data$row) %>%
+    dplyr::pull(.data$row)
+
+  endInitIcon <- data %>%
+    dplyr::filter(stringr::str_detect(.data$data, "SHOW: ICON END TRANSITION SCREEN")) %>%
+    dplyr::select(.data$row) %>%
+    dplyr::pull(.data$row)
+
   start1 <- data %>%
-    dplyr::filter(stringr::str_detect(.$data, "Phase 1 Group")) %>%
-    dplyr::select(row) %>%
-    dplyr::pull(row)
+    dplyr::filter(stringr::str_detect(.data$data, "Phase 1 Group")) %>%
+    dplyr::select(.data$row) %>%
+    dplyr::pull(.data$row)
 
   start2 <- data %>%
-    dplyr::filter(stringr::str_detect(.$data, "Phase 2 Group")) %>%
-    dplyr::select(row) %>%
-    dplyr::pull(row)
+    dplyr::filter(stringr::str_detect(.data$data, "Phase 2 Group")) %>%
+    dplyr::select(.data$row) %>%
+    dplyr::pull(.data$row)
 
   start3 <- data %>%
-    dplyr::filter(stringr::str_detect(.$data, "Phase 3 Group")) %>%
-    dplyr::select(row) %>%
-    dplyr::pull(row)
+    dplyr::filter(stringr::str_detect(.data$data, "Phase 3 Group")) %>%
+    dplyr::select(.data$row) %>%
+    dplyr::pull(.data$row)
 
   end3 <- data %>%
-    dplyr::filter(stringr::str_detect(.$data, "CLEAR TRANSITION SCREEN")) %>%
+    dplyr::filter(stringr::str_detect(.data$data, "CLEAR TRANSITION SCREEN")) %>%
     utils::tail(1) %>%
-    dplyr::select(row) %>%
-    dplyr::pull(row)
+    dplyr::select(.data$row) %>%
+    dplyr::pull(.data$row)
+
+  startFinalIcon <- end3
+
+  endFinalIcon <- data %>%
+    dplyr::filter(stringr::str_detect(.data$data, "Experiment Complete:")) %>%
+    dplyr::select(.data$row) %>%
+    dplyr::pull(.data$row)
+
+  phase$initIcon <- data %>%
+    dplyr::filter(dplyr::between(.data$row, startInitIcon, endInitIcon - 1))
 
   phase$one <- data %>%
-    dplyr::filter(dplyr::between(row, start1, start2 - 1)) %>%
+    dplyr::filter(dplyr::between(.data$row, start1, start2 - 1)) %>%
     dplyr::mutate(phase = rep(1))
 
   phase$two <- data %>%
-    dplyr::filter(dplyr::between(row, start2, start3 - 1)) %>%
+    dplyr::filter(dplyr::between(.data$row, start2, start3 - 1)) %>%
     dplyr::mutate(phase = rep(2))
 
   phase$three <- data %>%
-    dplyr::filter(dplyr::between(row, start3, end3 - 1)) %>%
+    dplyr::filter(dplyr::between(.data$row, start3, end3 - 1)) %>%
     dplyr::mutate(phase = rep(3))
+
+  phase$finalIcon <- data %>%
+    dplyr::filter(dplyr::between(.data$row, startFinalIcon, endFinalIcon - 1))
 
 }
 
@@ -95,6 +120,9 @@ getPhases <- function(data) {
 #' \item \emph{phase:} The phase these icons were displayed in (constant for each \code{phase} object).
 #' \item \emph{round:} The round number these icons were displayed in, specific to the phase.
 #' }
+#'
+#' @importFrom rlang .data
+#'
 #' @export
 #'
 #' @examples
@@ -103,35 +131,35 @@ getPhases <- function(data) {
 getIcons <- function(phaseData, pivot = FALSE) {
 
   icons <- phaseData %>%
-    dplyr::filter(stringr::str_detect(data, "SHOW: OPTION SELECTION")) %>%
-    tidyr::separate(col = data,
+    dplyr::filter(stringr::str_detect(.data$data, "SHOW: OPTION SELECTION")) %>%
+    tidyr::separate(col = .data$data,
              into = c("show", "option", "selection", "icon", "order", "icon_group"),
              extra = "drop",
              sep = " ",
              remove = TRUE) %>%
-    dplyr::select(icon_group, phase) %>%
-    dplyr::mutate(icon_group = stringr::str_remove_all(icon_group, "\"")) %>%
-    dplyr::mutate(icon_group = stringr::str_remove_all(icon_group, "\\{")) %>%
-    dplyr::mutate(icon_group = stringr::str_remove_all(icon_group, "\\}")) %>%
-    tidyr::separate(col = icon_group, into = c("order1", "icon1", "icon2"),
+    dplyr::select(.data$icon_group, phase) %>%
+    dplyr::mutate(icon_group = stringr::str_remove_all(.data$icon_group, "\"")) %>%
+    dplyr::mutate(icon_group = stringr::str_remove_all(.data$icon_group, "\\{")) %>%
+    dplyr::mutate(icon_group = stringr::str_remove_all(.data$icon_group, "\\}")) %>%
+    tidyr::separate(col = .data$icon_group, into = c("order1", "icon1", "icon2"),
              extra = "warn",
              remove = FALSE,
              sep = ":") %>%
-    tidyr::separate(col = icon1, into = c("icon1", "order2"),
+    tidyr::separate(col = .data$icon1, into = c("icon1", "order2"),
              extra = "warn",
              remove = FALSE,
              sep = ",") %>%
-    dplyr::mutate(icon2 = stringr::str_remove_all(icon2, ",")) %>%
-    dplyr::select(icon1, icon2, phase) %>%
+    dplyr::mutate(icon2 = stringr::str_remove_all(.data$icon2, ",")) %>%
+    dplyr::select(.data$icon1, .data$icon2, phase) %>%
     dplyr::mutate(round = dplyr::row_number())
 
   if(pivot) {
     icons <- icons %>%
-      tidyr::pivot_longer(cols = c(icon1, icon2),
+      tidyr::pivot_longer(cols = c(.data$icon1, .data$icon2),
                    names_to = "image_order",
                    values_to = "icon") %>%
-      dplyr::mutate(image_order = stringr::str_remove(.$image_order, "icon"),
-             image_order = base::as.numeric(image_order))
+      dplyr::mutate(image_order = stringr::str_remove(.data$image_order, "icon"),
+             image_order = base::as.numeric(.data$image_order))
 
   }
 
@@ -156,23 +184,25 @@ getIcons <- function(phaseData, pivot = FALSE) {
 #' }
 #' @export
 #'
+#' @importFrom rlang .data
+#'
 #' @examples
 #' \dontrun{getChoices(phase$two)}
 
 getChoices <- function(phaseData) {
 
   choices <- phaseData %>%
-    dplyr::filter(stringr::str_detect(.$data, "HIGHLIGHT CHOICE")) %>%
-    dplyr::mutate(data = stringr::str_remove_all(.$data, "HIGHLIGHT CHOICE: ")) %>%
-    tidyr::separate(col = data,
+    dplyr::filter(stringr::str_detect(.data$data, "HIGHLIGHT CHOICE")) %>%
+    dplyr::mutate(data = stringr::str_remove_all(.data$data, "HIGHLIGHT CHOICE: ")) %>%
+    tidyr::separate(col = .data$data,
              into = c("wordOption", "option", "wordChoice", "choice", "wordGroup", "group", "roundWord", "round"),
              extra = "warn",
              remove = FALSE,
              sep = " ") %>%
-    dplyr::select(option, choice, group, round, phase) %>%
-    dplyr::mutate(option = forcats::as_factor(stringr::str_remove_all(option, ",")),
-           choice = forcats::as_factor(stringr::str_remove_all(choice, ",")),
-           group = forcats::as_factor(stringr::str_remove_all(group, ",")),
+    dplyr::select(.data$option, .data$choice, .data$group, .data$round, .data$phase) %>%
+    dplyr::mutate(option = forcats::as_factor(stringr::str_remove_all(.data$option, ",")),
+           choice = forcats::as_factor(stringr::str_remove_all(.data$choice, ",")),
+           group = forcats::as_factor(stringr::str_remove_all(.data$group, ",")),
            round = dplyr::row_number())
 
   return(choices)
@@ -191,6 +221,7 @@ getChoices <- function(phaseData) {
 #' \item \emph{round:} The round number these choices were made in, specific to the phase.
 #' }
 #' @export
+#' @importFrom rlang .data
 #'
 #' @examples
 #'
@@ -199,15 +230,15 @@ getChoices <- function(phaseData) {
 getImageShown <- function(phaseData){
 
   output <- phaseData %>%
-    dplyr::filter(stringr::str_detect(.$data, "SHOW: image")) %>%
-    dplyr::mutate(data = stringr::str_remove_all(.$data, "SHOW: image - ")) %>%
-    tidyr::separate(col = data,
+    dplyr::filter(stringr::str_detect(.data$data, "SHOW: image")) %>%
+    dplyr::mutate(data = stringr::str_remove_all(.data$data, "SHOW: image - ")) %>%
+    tidyr::separate(col = .data$data,
              into = c("image", "round"),
              extra = "warn",
              remove = FALSE,
              sep = " , ") %>%
-    dplyr::select(image, phase) %>%
-    dplyr::mutate(image = stringr::str_remove(image, ".jpg"),
+    dplyr::select(.data$image, phase) %>%
+    dplyr::mutate(image = stringr::str_remove(.data$image, ".jpg"),
            round = dplyr::row_number())
 
   return(output)
@@ -254,6 +285,8 @@ getImageShown <- function(phaseData){
 #'   \emph{percentOptimal:} The cumulative sum of optimal choices divided by the
 #'   total round (1-150).}
 #'
+#' @importFrom rlang .data
+#'
 #' @export
 
 processChoiceData <- function(data){
@@ -273,21 +306,21 @@ processChoiceData <- function(data){
 
   #join the ranks with icon1
   icon1 <- combined %>%
-    dplyr::rename(icon = icon1) %>%
+    dplyr::rename(icon = .data$icon1) %>%
     dplyr::left_join(groupKey, by = c("phase", "icon")) %>%
-    dplyr::rename(icon1 = icon,
-           rank1 = rank) %>%
-    dplyr::select(-c(group.y, reward, probability, EU)) %>%
-    dplyr::relocate(rank1, .after = icon1)
+    dplyr::rename(icon1 = .data$icon,
+           rank1 =.data$rank) %>%
+    dplyr::select(-c(.data$group.y, .data$reward, .data$probability, .data$EU)) %>%
+    dplyr::relocate(.data$rank1, .after = .data$icon1)
 
   #join the ranks with icon2
   icon2 <- combined %>%
     dplyr::rename(icon = icon2) %>%
     dplyr::left_join(groupKey, by = c("phase", "icon")) %>%
-    dplyr::rename(icon2 = icon,
-           rank2 = rank) %>%
-    dplyr::select(-c(group.y, reward, probability, EU)) %>%
-    dplyr::relocate(rank2, .after = icon2)
+    dplyr::rename(icon2 = .data$icon,
+           rank2 = .data$rank) %>%
+    dplyr::select(-c(.data$group.y, .data$reward, .data$probability, .data$EU)) %>%
+    dplyr::relocate(.data$rank2, .after = .data$icon2)
 
   #rejoin the icon1 and icon2 rankings together, add optimal and percentOptimal
   #columns.
@@ -295,17 +328,17 @@ processChoiceData <- function(data){
                                by = c("phase", "round", "icon1",
                                       "icon2", "option", "choice",
                                       "group.x", "image")) %>%
-    dplyr::rename(group = group.x) %>%
-    dplyr::relocate(rank2, .after = icon2) %>%
-    dplyr::mutate(optimal = dplyr::case_when(option == 1 & rank1 > rank2 ~ 1,
-                                             option == 1 & rank1 < rank2 ~ 0,
-                                             option == 2 & rank1 > rank2 ~ 0,
-                                             option == 2 & rank1 < rank2 ~ 1),
+    dplyr::rename(group = .data$group.x) %>%
+    dplyr::relocate(.data$rank2, .after = .data$icon2) %>%
+    dplyr::mutate(optimal = dplyr::case_when(option == 1 & .data$rank1 > .data$rank2 ~ 1,
+                                             option == 1 & .data$rank1 < .data$rank2 ~ 0,
+                                             option == 2 & .data$rank1 > .data$rank2 ~ 0,
+                                             option == 2 & .data$rank1 < .data$rank2 ~ 1),
                   #percent optimal is the cumulative sum of optimal divided by the number of total rounds
-                  percentOptimal = base::cumsum(optimal) / dplyr::row_number(),
+                  percentOptimal = base::cumsum(.data$optimal) / dplyr::row_number(),
                   #create a total round column for plotting purposes
                   runningRound = dplyr::row_number()) %>%
-    dplyr::relocate(runningRound, .after = round)
+    dplyr::relocate(.data$runningRound, .after = round)
 
   return(together)
 }
@@ -315,6 +348,8 @@ processChoiceData <- function(data){
 #'
 #' @param phaseData One of the three phase objects defined by calling
 #'   \code{\link{getPhases}}.
+#'
+#' @importFrom rlang .data
 #'
 #' @return A dataframe with four columns. It has the reward and probability of
 #'   receiving it as a function of each image's group per phase. This can be
@@ -333,47 +368,47 @@ getGroupRewardProbs <- function(phaseData) {
   if (stringr::str_detect(testPhase, "Phase 1 Group")) {
     output <- phaseData %>%
       dplyr::slice(1) %>%
-      dplyr::mutate(data = stringr::str_remove_all(.$data, "Phase 1 Group \\{Reward, Probability\\}: "))
+      dplyr::mutate(data = stringr::str_remove_all(.data$data, "Phase 1 Group \\{Reward, Probability\\}: "))
 
   }else if (stringr::str_detect(testPhase, "Phase 2 Group")) {
     output <- phaseData %>%
       dplyr::slice(1) %>%
-      dplyr::mutate(data = stringr::str_remove_all(.$data, "Phase 2 Group \\{Reward, Probability\\}: "))
+      dplyr::mutate(data = stringr::str_remove_all(.data$data, "Phase 2 Group \\{Reward, Probability\\}: "))
 
   }else if (stringr::str_detect(testPhase, "Phase 3 Group")) {
     output <- phaseData %>%
       dplyr::slice(1) %>%
-      dplyr::mutate(data = stringr::str_remove_all(.$data, "Phase 3 Group \\{Reward, Probability\\}: "))
+      dplyr::mutate(data = stringr::str_remove_all(.data$data, "Phase 3 Group \\{Reward, Probability\\}: "))
   }
 
   output <- output %>%
-    tidyr::separate(col = data,
+    tidyr::separate(col = .data$data,
                     into = c("1", "2", "3", "4", "5", "6"),
                     extra = "warn",
                     remove = TRUE,
                     sep = "\\},") %>%
     dplyr::select(-row) %>%
-    dplyr::mutate(`1` = stringr::str_remove(`1`, "Group 1 \\{\\$"),
-                  `2` = stringr::str_remove(`2`, "Group 2 \\{\\$"),
-                  `3` = stringr::str_remove(`3`, "Group 3 \\{\\$"),
-                  `4` = stringr::str_remove(`4`, "Group 4 \\{\\$"),
-                  `5` = stringr::str_remove(`5`, "Group 5 \\{\\$"),
-                  `6` = stringr::str_remove(`6`, "Group 6 \\{\\$")) %>%
-    tidyr::pivot_longer(cols = -phase,
+    dplyr::mutate(`1` = stringr::str_remove(.data$`1`, "Group 1 \\{\\$"),
+                  `2` = stringr::str_remove(.data$`2`, "Group 2 \\{\\$"),
+                  `3` = stringr::str_remove(.data$`3`, "Group 3 \\{\\$"),
+                  `4` = stringr::str_remove(.data$`4`, "Group 4 \\{\\$"),
+                  `5` = stringr::str_remove(.data$`5`, "Group 5 \\{\\$"),
+                  `6` = stringr::str_remove(.data$`6`, "Group 6 \\{\\$")) %>%
+    tidyr::pivot_longer(cols = -.data$phase,
                         names_to = "group",
                         values_to = "info") %>%
-    dplyr::mutate(info = stringr::str_trim(info),
-                  info = stringr::str_remove_all(info, ","),
-                  info = stringr::str_remove_all(info, "\\}"),
-                  info = stringr::str_remove_all(info, "%")) %>%
-    tidyr::separate(col = info,
+    dplyr::mutate(info = stringr::str_trim(.data$info),
+                  info = stringr::str_remove_all(.data$info, ","),
+                  info = stringr::str_remove_all(.data$info, "\\}"),
+                  info = stringr::str_remove_all(.data$info, "%")) %>%
+    tidyr::separate(col = .data$info,
                     into = c("reward", "probability"),
                     extra = "warn",
                     remove = TRUE,
                     sep = " ") %>%
-    dplyr::mutate(group = forcats::as_factor(group),
-                  probability = base::as.numeric(probability),
-                  probability = probability/100) %>%
+    dplyr::mutate(group = forcats::as_factor(.data$group),
+                  probability = base::as.numeric(.data$probability),
+                  probability = .data$probability/100) %>%
     tidyr::drop_na()
 
   return(output)
@@ -382,6 +417,8 @@ getGroupRewardProbs <- function(phaseData) {
 #' Get Group Reward and Probability Info for All Phases
 #'
 #' @param data The data output from \code{\link{readChoices}}
+#'
+#' @importFrom rlang .data
 #'
 #' @return A dataframe with 15 rows and seven columns. It has the reward amount
 #'   and probability of receiving a reward as a function of each image's group
@@ -398,31 +435,31 @@ getGroupInfo <- function(data) {
   phases <- list(phase$one, phase$two, phase$three)
 
   iconGroupMaps <- data %>%
-    dplyr::filter(stringr::str_detect(.$data, "ICON TO GROUP MAPPING: ")) %>%
-    dplyr::select(-time) %>%
-    dplyr::mutate(data = stringr::str_remove(data, "ICON TO GROUP MAPPING:"),
-                  data = stringr::str_remove(data, "\\{"),
-                  data = stringr::str_remove(data, "\\}")) %>%
-    tidyr::separate(col = data,
+    dplyr::filter(stringr::str_detect(.data$data, "ICON TO GROUP MAPPING: ")) %>%
+    dplyr::select(-.data$time) %>%
+    dplyr::mutate(data = stringr::str_remove(.data$data, "ICON TO GROUP MAPPING:"),
+                  data = stringr::str_remove(.data$data, "\\{"),
+                  data = stringr::str_remove(.data$data, "\\}")) %>%
+    tidyr::separate(col = .data$data,
                     into = c("icon1", "icon2", "icon3", "icon4", "icon5", "icon6"),
                     sep = "\\,") %>%
-    tidyr::pivot_longer(cols = everything(),
+    tidyr::pivot_longer(cols = dplyr::everything(),
                         names_to = "iconNum") %>%
-    dplyr::mutate(value = stringr::str_remove_all(value, "\\\"")) %>%
-    tidyr::separate(value,
+    dplyr::mutate(value = stringr::str_remove_all(.data$value, "\\\"")) %>%
+    tidyr::separate(.data$value,
                     into = c("icon", "group"),
                     sep = "\\:") %>%
-    dplyr::arrange(group) %>%
-    dplyr::transmute(icon = stringr::str_trim(icon),
-                     group = base::as.factor(group))
+    dplyr::arrange(.data$group) %>%
+    dplyr::transmute(icon = stringr::str_trim(.data$icon),
+                     group = base::as.factor(.data$group))
 
   #warnings suppressed due to there only being three groups in phase 1. It throws a warning but it doesn't matter.
   output <- base::suppressWarnings(dplyr::full_join(iconGroupMaps, purrr::map_df(phases, ~getGroupRewardProbs(.x)), by = "group")) %>%
     dplyr::arrange(phase) %>%
-    dplyr::select(phase, icon, group, reward, probability) %>%
-    dplyr::mutate(EU = base::as.numeric(reward) * probability) %>%
+    dplyr::select(phase, .data$icon, .data$group, .data$reward, .data$probability) %>%
+    dplyr::mutate(EU = base::as.numeric(.data$reward) * .data$probability) %>%
     dplyr::group_by(phase) %>%
-    dplyr::mutate(rank = dplyr::min_rank(EU))
+    dplyr::mutate(rank = dplyr::min_rank(.data$EU))
 
   return(output)
 
@@ -432,13 +469,19 @@ getGroupInfo <- function(data) {
 #' Plot the Percent of Optimal Choices for Each Subject
 #'
 #' @param processedData The output of \code{\link{processChoiceData}}.
-#' @param facet Logical: TRUE and plots will be faceted by subject. FALSE and it won't. Default is FALSE.
+#' @param facet Logical: TRUE and plots will be faceted by subject. FALSE and it
+#'   won't. Default is FALSE.
+#' @param subjectName Optional argument to include a subject name if plotting
+#'   for only one subject. Name must be in quotations.
 #'
-#' @return A plot showing the percent of optimal choices over time (round number), with each phase specified.
+#' @importFrom rlang .data
+#'
+#' @return A plot showing the percent of optimal choices over time (round
+#'   number), with each phase specified.
 #' @export
 #'
 
-plotPercentOptimal <- function(processedData, facet = FALSE) {
+plotPercentOptimal <- function(processedData, facet = FALSE, subjectName = NULL) {
 
   myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face = "bold.italic", size=16), #plot title aesthetics
                               plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12), #plot subtitle aesthetics
@@ -460,8 +503,20 @@ plotPercentOptimal <- function(processedData, facet = FALSE) {
                                  "Phase 2", 50,   base::max(processedData$percentOptimal) + 0.05,
                                  "Phase 3", 115,  base::max(processedData$percentOptimal) + 0.05)
 
-  plot <- ggplot2::ggplot(processedData, aes(x = runningRound, y = percentOptimal)) +
-    ggplot2::geom_line(aes(color = subject), size = 1) +
+
+  #If only plotting for one subject, then subject column won't be in the
+  #processedData. If the subjectName argument is defined, the subject column
+  #will take that value. Else, it will just say "Sample".
+  if (!"subject" %in% base::names(processedData)) {
+    if (base::is.null(subjectName)) {
+      processedData <- processedData %>% dplyr::mutate(subject = "Sample")
+    } else if (!base::is.null(subjectName)) {
+      processedData <- processedData %>% dplyr::mutate(subject = {{ subjectName }})
+    }
+  }
+
+  plot <- ggplot2::ggplot(processedData, ggplot2::aes(x = .data$runningRound, y = .data$percentOptimal)) +
+    ggplot2::geom_line(ggplot2::aes(color = .data$subject), size = 1) +
     ggplot2::scale_y_continuous(labels = scales::percent, breaks = c(seq(0,1, by = 0.2))) +
     ggplot2::labs(x = "Round Number",
                   y = "Percent of Optimal choices",
@@ -469,12 +524,12 @@ plotPercentOptimal <- function(processedData, facet = FALSE) {
                   color = "Subject") +
     #geom_vline(xintercept = c(25, 75)) +
     myGGTheme +
-    theme(panel.background = ggplot2::element_blank(),
+    ggplot2::theme(panel.background = ggplot2::element_blank(),
           panel.grid.major = ggplot2::element_blank(),
           panel.grid.minor = ggplot2::element_blank(),
           axis.line = ggplot2::element_line(colour = "black"),
-          strip.background = element_rect(fill = "aliceblue")) +
-    scale_size(guide = "none")#remove the size legend
+          strip.background = ggplot2::element_rect(fill = "aliceblue")) +
+    ggplot2::scale_size(guide = "none")#remove the size legend
 
     if(facet) {
       plot <- plot +
@@ -485,14 +540,14 @@ plotPercentOptimal <- function(processedData, facet = FALSE) {
         #annotate the background for phase 3
         ggplot2::annotate(geom = "rect", xmin = 75, xmax = 150, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "pink", alpha = 0.125) +
         ggplot2::geom_text(data = phaseLabels,
-                           mapping = aes(x = x,
-                                         y = y,
-                                         label = label,
-                                         fontface = "bold"),
+                           mapping = ggplot2::aes(x = .data$x,
+                                                  y = .data$y,
+                                                  label = .data$label,
+                                                  fontface = "bold"),
                            size = 2,
                            show.legend = FALSE) +
-        facet_wrap(~subject) +
-        theme(legend.position = "none")
+        ggplot2::facet_wrap(~.data$subject) +
+        ggplot2::theme(legend.position = "none")
     } else if (!facet) {
       plot <- plot +
         #annotate the background for phase 1
@@ -502,10 +557,10 @@ plotPercentOptimal <- function(processedData, facet = FALSE) {
         #annotate the background for phase 3
         ggplot2::annotate(geom = "rect", xmin = 75, xmax = 150, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "pink", alpha = 0.125) +
         ggplot2::geom_text(data = phaseLabels,
-                           mapping = aes(x = x,
-                                         y = y,
-                                         label = label,
-                                         fontface = "bold"),
+                           mapping = ggplot2::aes(x = .data$x,
+                                                  y = .data$y,
+                                                  label = .data$label,
+                                                  fontface = "bold"),
                            size = 4.5,
                            show.legend = FALSE)
 

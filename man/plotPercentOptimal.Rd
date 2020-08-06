@@ -4,15 +4,20 @@
 \alias{plotPercentOptimal}
 \title{Plot the Percent of Optimal Choices for Each Subject}
 \usage{
-plotPercentOptimal(processedData, facet = FALSE)
+plotPercentOptimal(processedData, facet = FALSE, subjectName = NULL)
 }
 \arguments{
 \item{processedData}{The output of \code{\link{processChoiceData}}.}
 
-\item{facet}{Logical: TRUE and plots will be faceted by subject. FALSE and it won't. Default is FALSE.}
+\item{facet}{Logical: TRUE and plots will be faceted by subject. FALSE and it
+won't. Default is FALSE.}
+
+\item{subjectName}{Optional argument to include a subject name if plotting
+for only one subject. Name must be in quotations.}
 }
 \value{
-A plot showing the percent of optimal choices over time (round number), with each phase specified.
+A plot showing the percent of optimal choices over time (round
+  number), with each phase specified.
 }
 \description{
 Plot the Percent of Optimal Choices for Each Subject

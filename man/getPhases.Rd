@@ -13,14 +13,15 @@ getPhases(data)
 This function takes the data column from the output of
 \code{\link{readChoices}} and separates the three phases of the task, saving
 them to the environment \code{phrase}, which is initialized behind the
-scenes. This function \strong{must} be run in order to use the other
+scenes. It also separates the initial icon rating phase and the final icon
+rating phase. This function \strong{must} be run in order to use the other
 functions that parse the choice data. If it is not, the phases will need to
 be isolated by hand and assigned to the phase environment (or local/global
 variables). See the \emph{Details} section for more how to access the three
 phases.
 }
 \details{
-The three phases of the task may be accessed by calling the variables:
+The task and icon rating phases may be accessed by calling the variables:
 \itemize{ \item \code{phase$one} \item \code{phase$two} \item
-\code{phase$three} }
+\code{phase$three} \item \code{phase$initIcon} \item \code{phase$finalIcon}}
 }

@@ -26,7 +26,7 @@ readRatings <- function(filePath) {
 #'
 #' @param data The data output from \code{\link{readRatings}}.
 #'
-#'
+#' @importFrom rlang .data
 #' @return A dataframe/tibble column titled "question" with variables positive
 #'   and negative signifying the question asked on each round.
 #' @export
@@ -35,8 +35,8 @@ readRatings <- function(filePath) {
 getQuestion <- function(data) {
 
   question <- data %>%
-    dplyr::filter(stringr::str_detect(.$data, "Question")) %>%
-    dplyr::transmute(question = dplyr::if_else(condition = stringr::str_detect(.$data, "NEGATIVE"),
+    dplyr::filter(stringr::str_detect(.data$data, "Question")) %>%
+    dplyr::transmute(question = dplyr::if_else(condition = stringr::str_detect(.data$data, "NEGATIVE"),
                                  true = "negative",
                                  false = "positive"))
   return(question)
@@ -60,15 +60,15 @@ getQuestion <- function(data) {
 getPicID <- function(data) {
 
   picID <- data %>%
-    dplyr::filter(stringr::str_detect(.$data, "Image")) %>%
-    dplyr::filter(!stringr::str_detect(.$data, "ROUND 0")) %>%
-    tidyr::separate(col = data,
+    dplyr::filter(stringr::str_detect(.data$data, "Image")) %>%
+    dplyr::filter(!stringr::str_detect(.data$data, "ROUND 0")) %>%
+    tidyr::separate(col = .data$data,
              into = c("show", "image", "hyphen", "id", "round", "roundNumber"),
              extra = "drop",
              sep = " ",
              remove = FALSE) %>%
-    dplyr::select("id") %>%
-    dplyr::transmute(picture = stringr::str_remove(.$id, ".jpg,"))
+    dplyr::select(.data$id) %>%
+    dplyr::transmute(picture = stringr::str_remove(.data$id, ".jpg,"))
 
   return(picID)
 
@@ -84,6 +84,7 @@ getPicID <- function(data) {
 #'
 #' @param data The data output from \code{\link{readRatings}}.
 #'
+#' @importFrom rlang .data
 #' @return A dataframe/tibble column titled "rating" with the different images
 #'   displayed on each round.
 #'
@@ -93,15 +94,15 @@ getPicID <- function(data) {
 getRating <- function(data) {
 
   submitRating <- data %>%
-    dplyr::filter(stringr::str_detect(.$data, "SUBMIT")) %>%
-    dplyr::filter(!stringr::str_detect(.$data, "ROUND 0")) %>%
-    tidyr::separate(col = data,
+    dplyr::filter(stringr::str_detect(.data$data, "SUBMIT")) %>%
+    dplyr::filter(!stringr::str_detect(.data$data, "ROUND 0")) %>%
+    tidyr::separate(col = .data$data,
              into = c("submit", "rating", "wordValue", "value"),
              extra = "drop",
              sep = " ",
              remove = FALSE) %>%
-    dplyr::select(value) %>%
-    dplyr::transmute(rating = stringr::str_remove(.$value, ","))
+    dplyr::select(.data$value) %>%
+    dplyr::transmute(rating = stringr::str_remove(.data$value, ","))
 
   return(submitRating)
 
@@ -121,6 +122,7 @@ getRating <- function(data) {
 #'
 #'@param data The data output from \code{\link{readRatings}}.
 #'
+#'@importFrom rlang .data
 #'@return Dataframe/tibble with 242 rows and four columns containing information
 #'  about the round, picture ID, question asked, and rating value. See description
 #'  for more information.
@@ -134,10 +136,10 @@ processRatingsData <- function(data) {
 
   combined <- dplyr::bind_cols(picID, question, ratings) %>%
     dplyr::mutate(round = dplyr::row_number(),
-           picture = forcats::as_factor(picture),
-           question = forcats::as_factor(question),
-           rating = base::as.numeric(rating)) %>%
-    dplyr::select(round, dplyr::everything())
+           picture = forcats::as_factor(.data$picture),
+           question = forcats::as_factor(.data$question),
+           rating = base::as.numeric(.data$rating)) %>%
+    dplyr::select(.data$round, dplyr::everything())
 
   return(combined)
 }
@@ -157,30 +159,32 @@ processRatingsData <- function(data) {
 #'   each image when the subjects were asked "How positive does this image make
 #'   you feel?" and "How negative does this image make you feel?"
 #'
+#' @importFrom rlang .data
+#'
 #' @export
 #'
 regSetup <- function(processedData) {
 
   pos <- processedData %>%
-    dplyr::filter(question == "positive") %>%
-    tidyr::pivot_wider(names_from = question,
-                values_from = rating)
+    dplyr::filter(.data$question == "positive") %>%
+    tidyr::pivot_wider(names_from = .data$question,
+                values_from = .data$rating)
 
   neg <- processedData %>%
-    dplyr::filter(question == "negative") %>%
-    tidyr::pivot_wider(names_from = question,
-                values_from = rating)
+    dplyr::filter(.data$question == "negative") %>%
+    tidyr::pivot_wider(names_from = .data$question,
+                values_from = .data$rating)
 
   if ("subject" %in% names(processedData)) {
     out <- dplyr::full_join(pos, neg, by = c("subject", "picture")) %>%
-      dplyr::select(-c(round.x, round.y)) %>%
-      dplyr::filter(picture != "neutral") %>%
-      dplyr::rename(IAPS = picture)
+      dplyr::select(-c(.data$round.x, .data$round.y)) %>%
+      dplyr::filter(.data$picture != "neutral") %>%
+      dplyr::rename(IAPS = .data$picture)
   } else if (!"subject" %in% names(processedData)) {
     out <- dplyr::full_join(pos, neg, by = "picture") %>%
-      dplyr::select(-c(round.x, round.y)) %>%
-      dplyr::filter(picture != "neutral") %>%
-      dplyr::rename(IAPS = picture)
+      dplyr::select(-c(.data$round.x, .data$round.y)) %>%
+      dplyr::filter(.data$picture != "neutral") %>%
+      dplyr::rename(IAPS = .data$picture)
   }
 
   return(out)
