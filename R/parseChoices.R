@@ -26,7 +26,7 @@ readChoices <- function(filePath) {
 #' rating phase. This function \strong{must} be run in order to use the other
 #' functions that parse the choice data. If it is not, the phases will need to
 #' be isolated by hand and assigned to the phase environment (or local/global
-#' variables). See the \emph{Details} section for more how to access the three
+#' variables). See the \emph{Details} section for more on how to access the three
 #' phases.
 #'
 #' The task and icon rating phases may be accessed by calling the variables:
