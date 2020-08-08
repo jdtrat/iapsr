@@ -337,6 +337,7 @@ processChoiceData <- function(data){
     dplyr::group_by(.data$phase) %>%
     dplyr::mutate(percentOptimal = base::cumsum(.data$optimal)/dplyr::row_number()) %>%
     dplyr::ungroup() %>%
+    dplyr::mutate(runningRound = dplyr::row_number()) %>%
     dplyr::relocate(.data$runningRound, .after = .data$round)
 
   return(together)
@@ -516,18 +517,17 @@ plotPercentOptimal <- function(processedData, facet = FALSE, subjectName = NULL)
 
   #this is a tribble that contains the x and y coordinates for the end of each
   #line segment to be plotted on the discontinuous optimal choice plot.
-  segmentDots <- tibble::tribble(~x, ~y,                              ~fill,
-                                 1, processedData$percentOptimal[1], "white",
-                                 25, processedData$percentOptimal[25], "white",
-                                 26, processedData$percentOptimal[26], "white",
-                                 75, processedData$percentOptimal[75], "white",
-                                 76, processedData$percentOptimal[76], "white",
-                                 150, processedData$percentOptimal[150], "white")
+  segmentDots <- processedData %>%
+    dplyr::group_by(.data$subject) %>%
+    dplyr::slice(c(1, 25, 26,75, 76, 150)) %>%
+    dplyr::mutate(x = c(1, 25, 26, 75, 76, 150)) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(.data$subject, .data$x, y = .data$percentOptimal)
 
 
   plot <- ggplot2::ggplot(processedData, ggplot2::aes(x = .data$runningRound, y = .data$percentOptimal)) +
     ggplot2::geom_line(ggplot2::aes(color = .data$subject, group = as.factor(.data$phase)), size = 1) +
-    ggplot2::geom_point(data = segmentDots, ggplot2::aes(x = .data$x, y = .data$y), fill = "white", color = "black", size = 2, stroke = 1, shape = 21) +
+    ggplot2::geom_point(data = segmentDots, ggplot2::aes(x = .data$x, y = .data$y, color = .data$subject), fill = "white", size = 2, stroke = 1, shape = 21) +
     ggplot2::scale_y_continuous(labels = scales::percent, breaks = c(seq(0,1, by = 0.2))) +
     ggplot2::labs(x = "Round Number",
                   y = "Percent of Optimal choices",
@@ -549,7 +549,7 @@ plotPercentOptimal <- function(processedData, facet = FALSE, subjectName = NULL)
         #annotate the background for phase 2
         ggplot2::annotate(geom = "rect", xmin = 25, xmax = 75, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "blue", alpha = 0.125) +
         #annotate the background for phase 3
-        ggplot2::annotate(geom = "rect", xmin = 75, xmax = 150, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "pink", alpha = 0.125) +
+        ggplot2::annotate(geom = "rect", xmin = 75, xmax = 152, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "pink", alpha = 0.125) +
         ggplot2::geom_text(data = phaseLabels,
                            mapping = ggplot2::aes(x = .data$x,
                                                   y = .data$y,
@@ -566,7 +566,7 @@ plotPercentOptimal <- function(processedData, facet = FALSE, subjectName = NULL)
         #annotate the background for phase 2
         ggplot2::annotate(geom = "rect", xmin = 25, xmax = 75, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "blue", alpha = 0.125) +
         #annotate the background for phase 3
-        ggplot2::annotate(geom = "rect", xmin = 75, xmax = 150, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "pink", alpha = 0.125) +
+        ggplot2::annotate(geom = "rect", xmin = 75, xmax = 150.75, ymin = -0.05, ymax = max(processedData$percentOptimal) + 0.1, fill = "pink", alpha = 0.125) +
         ggplot2::geom_text(data = phaseLabels,
                            mapping = ggplot2::aes(x = .data$x,
                                                   y = .data$y,
