@@ -178,12 +178,10 @@ regSetup <- function(processedData) {
   if ("subject" %in% names(processedData)) {
     out <- dplyr::full_join(pos, neg, by = c("subject", "picture")) %>%
       dplyr::select(-c(.data$round.x, .data$round.y)) %>%
-      dplyr::filter(.data$picture != "neutral") %>%
       dplyr::rename(IAPS = .data$picture)
   } else if (!"subject" %in% names(processedData)) {
     out <- dplyr::full_join(pos, neg, by = "picture") %>%
       dplyr::select(-c(.data$round.x, .data$round.y)) %>%
-      dplyr::filter(.data$picture != "neutral") %>%
       dplyr::rename(IAPS = .data$picture)
   }
 
