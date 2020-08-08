@@ -526,7 +526,7 @@ plotPercentOptimal <- function(processedData, facet = FALSE, subjectName = NULL)
 
 
   plot <- ggplot2::ggplot(processedData, ggplot2::aes(x = .data$runningRound, y = .data$percentOptimal)) +
-    ggplot2::geom_line(ggplot2::aes(color = .data$subject, group = as.factor(.data$phase)), size = 1) +
+    ggplot2::geom_line(ggplot2::aes(color = .data$subject, group = interaction(as.factor(subject), as.factor(phase))), size = 1) +
     ggplot2::geom_point(data = segmentDots, ggplot2::aes(x = .data$x, y = .data$y, color = .data$subject), fill = "white", size = 2, stroke = 1, shape = 21) +
     ggplot2::scale_y_continuous(labels = scales::percent, breaks = c(seq(0,1, by = 0.2))) +
     ggplot2::labs(x = "Round Number",
