@@ -300,7 +300,7 @@ getImageShown <- function(phaseData){
 #' Process Choice Data
 #'
 #' This function takes the data column from the output of
-#' \code{\link{readChoices}} and runs five functions, binding the results in a
+#' \code{\link{readChoices}} and runs four functions, binding the results in a
 #' dataframe for easy manipulation: \itemize{ \item \code{\link{getPhases}}
 #' which separates the three phases of the task, saving them to the environment
 #' \code{phrase}, which is initialized behind the scenes. \item
