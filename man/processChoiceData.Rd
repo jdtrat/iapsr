@@ -10,12 +10,12 @@ processChoiceData(data)
 \item{data}{The data output from \code{\link{readChoices}}}
 }
 \value{
-A dataframe 150 rows and 13 columns: \itemize{ \item
-  \emph{phase:} The phase these icons were displayed in (constant for each
-  \code{phase} object). \item \emph{round:} The round number these icons were
-  displayed in, specific to the phase. \item \emph{icon1:} The icon presented
-  in the first order position. \item \emph{icon1Group:} The group mapping for
-  the icon presented in the first order position. \item \emph{icon1Prob:} The
+A dataframe 150 rows and 14 columns: \itemize{ \item \emph{phase:}
+  The phase these icons were displayed in (constant for each \code{phase}
+  object). \item \emph{round:} The round number these icons were displayed
+  in, specific to the phase. \item \emph{icon1:} The icon presented in the
+  first order position. \item \emph{icon1Group:} The group mapping for the
+  icon presented in the first order position. \item \emph{icon1Prob:} The
   probability of getting a reinforcing image by choosing icon 1. \item
   \emph{icon1Sign:} The relative sign of the reinforcing image (positive or
   negative) by choosing icon 1. \item \emph{icon2:} The icon presented in the
@@ -25,8 +25,9 @@ A dataframe 150 rows and 13 columns: \itemize{ \item
   \emph{icon2Sign:} The relative sign of the reinforcing image (positive or
   negative) by choosing icon 2. \item \emph{chosenIcon:} The icon the subject
   chose. \item \emph{chosenIconGroup:} The (payment weighting) group the
-  chosen icon corresponds to. \item \emph{reinforcer:} The image the subject
-  was shown (reinforced with) after making a choice.}
+  chosen icon corresponds to. \item \emph{chosenIconProb:} The probability
+  that the chosen icon leads to a reinforcing image. \item \emph{reinforcer:}
+  The image the subject was shown (reinforced with) after making a choice.}
 }
 \description{
 This function takes the data column from the output of
