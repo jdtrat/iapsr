@@ -10,27 +10,23 @@ processChoiceData(data)
 \item{data}{The data output from \code{\link{readChoices}}}
 }
 \value{
-A dataframe 150 rows and 13 columns: \itemize{ \item \emph{phase:}
-  The phase the choices were made in. \item \emph{round:} The round number
-  these choices were made in, specific to the phase. \item
-  \emph{runningRound:} The round number these choices were made in (1-150),
-  independent of phase. This is useful for plotting the percent of optimal
-  choices over time. \item \emph{icon1:} The icon presented in the first
-  order position. \item \emph{rank1:} The rank of icon1. The higher this is,
-  the higher the expected utility of choosing icon1. \item \emph{icon2:} The
-  icon presented in the second order position. \item \emph{rank2:} The rank
-  of icon2. The higher this is, the higher the expected utility of choosing
-  icon2.\item \emph{option:} The option the subject chose. This should
-  correspond to the icon order as presented in the task. \item \emph{choice:}
-  The icon the subject chose. \item \emph{group:} The (payment weighting)
-  group the chosen icon corresponds to. \item \emph{image:} The image the
-  subject was shown after making a choice. \item \emph{optimal:} A binary
-  variable tracking whether or not the choice was optimal. This is 1 if the
-  rank of the icon chosen is higher than the rank of the one not chosen. It
-  is 0 otherwise. The ranks are based on the expected utility for each icon.
-  See \code{\link{getGroupInfo}} for that information. \item
-  \emph{percentOptimal:} The cumulative sum of optimal choices divided by the
-  total round (1-150).}
+A dataframe 150 rows and 13 columns: \itemize{ \item
+  \emph{phase:} The phase these icons were displayed in (constant for each
+  \code{phase} object). \item \emph{round:} The round number these icons were
+  displayed in, specific to the phase. \item \emph{icon1:} The icon presented
+  in the first order position. \item \emph{icon1Group:} The group mapping for
+  the icon presented in the first order position. \item \emph{icon1Prob:} The
+  probability of getting a reinforcing image by choosing icon 1. \item
+  \emph{icon1Sign:} The relative sign of the reinforcing image (positive or
+  negative) by choosing icon 1. \item \emph{icon2:} The icon presented in the
+  second order position. \item \emph{icon2Group:} The group mapping for the
+  icon presented in the second order position. \item \emph{icon2Prob:} The
+  probability of getting a reinforcing image by choosing icon 2. \item
+  \emph{icon2Sign:} The relative sign of the reinforcing image (positive or
+  negative) by choosing icon 2. \item \emph{chosenIcon:} The icon the subject
+  chose. \item \emph{chosenIconGroup:} The (payment weighting) group the
+  chosen icon corresponds to. \item \emph{reinforcer:} The image the subject
+  was shown (reinforced with) after making a choice.}
 }
 \description{
 This function takes the data column from the output of
@@ -38,11 +34,8 @@ This function takes the data column from the output of
 dataframe for easy manipulation: \itemize{ \item \code{\link{getPhases}}
 which separates the three phases of the task, saving them to the environment
 \code{phrase}, which is initialized behind the scenes. \item
-\code{\link{getGroupInfo}} which returns a dataframe of the icons and the
-payment weighting group they correspond to in each phase. It has the expected
-utility and relative ranks of choosing each option. \item \code{\link{getIcons}}
-which gets the icon options shown to the subject. \item
-\code{\link{getChoices}} which gets the choice the subject makes. \item
-\code{\link{getImageShown}} which gets the images the subject is shown after
-choosing an icon.}
+\code{\link{getIcons}} which gets the icon information shown to the subject
+per round. \item \code{\link{getChoices}} which gets the choice the subject
+makes. \item \code{\link{getImageShown}} which gets the images the subject is
+shown after choosing an icon.}
 }

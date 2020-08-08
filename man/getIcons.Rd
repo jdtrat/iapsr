@@ -4,27 +4,34 @@
 \alias{getIcons}
 \title{Get Icons for Each Round}
 \usage{
-getIcons(phaseData, pivot = FALSE)
+getIcons(data, specificPhase = NULL)
 }
 \arguments{
-\item{phaseData}{One of the three phase objects defined by calling \code{\link{getPhases}}.}
+\item{data}{The data output from \code{\link{readChoices}}}
 
-\item{pivot}{Logical: pivoting the data makes it tidier, but makes it harder
-to join with the other information. For this reason, it is being set to
-FALSE by default.}
+\item{specificPhase}{If this argument is specified, the icons and groups for
+a specific phase will be returned. If this is not specified, the icons and
+groups for all phases will be returned.}
 }
 \value{
-Returns a dataframe with four columns:
-\itemize{
-\item \emph{icon1:} The icon presented in the first order position.
-\item \emph{icon2:} The icon presented in the second order position.
-\item \emph{phase:} The phase these icons were displayed in (constant for each \code{phase} object).
-\item \emph{round:} The round number these icons were displayed in, specific to the phase.
-}
+Returns a dataframe with ten columns: \itemize{ \item \emph{phase:}
+  The phase these icons were displayed in (constant for each \code{phase}
+  object). \item \emph{round:} The round number these icons were displayed
+  in, specific to the phase. \item \emph{icon1:} The icon presented in the
+  first order position. \item \emph{icon1Group:} The group mapping for the
+  icon presented in the first order position. \item \emph{icon1Prob:} The
+  probability of getting a reinforcing image by choosing icon 1. \item
+  \emph{icon1Sign:} The relative sign of the reinforcing image (positive or
+  negative) by choosing icon 1. \item \emph{icon2:} The icon presented in the
+  second order position. \item \emph{icon2Group:} The group mapping for the
+  icon presented in the second order position. \item \emph{icon2Prob:} The
+  probability of getting a reinforcing image by choosing icon 2. \item
+  \emph{icon2Sign:} The relative sign of the reinforcing image (positive or
+  negative) by choosing icon 2. }
 }
 \description{
-This gets the icons for each round in each phase.
+This function parses the information for the icons presented in each round.
 }
 \examples{
-\dontrun{getIcons(phase$one)}
+\dontrun{getIcons(sampleChoiceData, specificPhase = 1)}
 }

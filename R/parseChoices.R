@@ -103,67 +103,119 @@ getPhases <- function(data) {
 
 }
 
+
+
+#' Get Icons for Each Round per Phase
+#'
+#' This function gets the icons for each round in each phase. It \strong{was}
+#' the old \code{\link{getIcons}} function, but is now used in that.
+#' @param phaseData One of the three phase objects defined by calling
+#'   \code{\link{getPhases}}.
+#'
+#' @return This returns a dataframe with four columns: \itemize{\item
+#'   \emph{phase:} The phase these icons were displayed in (constant for each
+#'   \code{phase} object). \item \emph{round:} The round number these icons were
+#'   displayed in, specific to the phase. \item \emph{icon1:} The icon presented
+#'   in the first order position. \item \emph{icon2:} The icon presented in the
+#'   second order position. }
+
+getPhaseIcons <- function(phaseData) {
+  phaseIcons <- phaseData %>%
+    dplyr::filter(stringr::str_detect(.data$data, "SHOW: OPTION SELECTION")) %>%
+    tidyr::separate(col = .data$data,
+                    into = c("show", "option", "selection", "icon", "order", "icon_group"),
+                    extra = "drop",
+                    sep = " ",
+                    remove = TRUE) %>%
+    dplyr::select(.data$icon_group, phase) %>%
+    dplyr::mutate(icon_group = stringr::str_remove_all(.data$icon_group, "\"")) %>%
+    dplyr::mutate(icon_group = stringr::str_remove_all(.data$icon_group, "\\{")) %>%
+    dplyr::mutate(icon_group = stringr::str_remove_all(.data$icon_group, "\\}")) %>%
+    tidyr::separate(col = .data$icon_group, into = c("order1", "icon1", "icon2"),
+                    extra = "warn",
+                    remove = FALSE,
+                    sep = ":") %>%
+    tidyr::separate(col = .data$icon1, into = c("icon1", "order2"),
+                    extra = "warn",
+                    remove = FALSE,
+                    sep = ",") %>%
+    dplyr::mutate(icon2 = stringr::str_remove_all(.data$icon2, ",")) %>%
+    dplyr::select(.data$icon1, .data$icon2, phase) %>%
+    dplyr::mutate(round = dplyr::row_number()) %>%
+    dplyr::relocate(3,4)
+
+  return(phaseIcons)
+
+}
+
 #' Get Icons for Each Round
 #'
-#' This gets the icons for each round in each phase.
+#' This function parses the information for the icons presented in each round.
 #'
-#' @param phaseData One of the three phase objects defined by calling \code{\link{getPhases}}.
+#' @param data The data output from \code{\link{readChoices}}
+#' @param specificPhase If this argument is specified, the icons and groups for
+#'   a specific phase will be returned. If this is not specified, the icons and
+#'   groups for all phases will be returned.
 #'
-#' @param pivot Logical: pivoting the data makes it tidier, but makes it harder
-#'   to join with the other information. For this reason, it is being set to
-#'   FALSE by default.
-#'
-#' @return Returns a dataframe with four columns:
-#' \itemize{
-#' \item \emph{icon1:} The icon presented in the first order position.
-#' \item \emph{icon2:} The icon presented in the second order position.
-#' \item \emph{phase:} The phase these icons were displayed in (constant for each \code{phase} object).
-#' \item \emph{round:} The round number these icons were displayed in, specific to the phase.
-#' }
+#' @return Returns a dataframe with ten columns: \itemize{ \item \emph{phase:}
+#'   The phase these icons were displayed in (constant for each \code{phase}
+#'   object). \item \emph{round:} The round number these icons were displayed
+#'   in, specific to the phase. \item \emph{icon1:} The icon presented in the
+#'   first order position. \item \emph{icon1Group:} The group mapping for the
+#'   icon presented in the first order position. \item \emph{icon1Prob:} The
+#'   probability of getting a reinforcing image by choosing icon 1. \item
+#'   \emph{icon1Sign:} The relative sign of the reinforcing image (positive or
+#'   negative) by choosing icon 1. \item \emph{icon2:} The icon presented in the
+#'   second order position. \item \emph{icon2Group:} The group mapping for the
+#'   icon presented in the second order position. \item \emph{icon2Prob:} The
+#'   probability of getting a reinforcing image by choosing icon 2. \item
+#'   \emph{icon2Sign:} The relative sign of the reinforcing image (positive or
+#'   negative) by choosing icon 2. }
 #'
 #' @importFrom rlang .data
 #'
 #' @export
 #'
 #' @examples
-#' \dontrun{getIcons(phase$one)}
+#' \dontrun{getIcons(sampleChoiceData, specificPhase = 1)}
 
-getIcons <- function(phaseData, pivot = FALSE) {
+getIcons <- function(data, specificPhase = NULL) {
 
-  icons <- phaseData %>%
-    dplyr::filter(stringr::str_detect(.data$data, "SHOW: OPTION SELECTION")) %>%
-    tidyr::separate(col = .data$data,
-             into = c("show", "option", "selection", "icon", "order", "icon_group"),
-             extra = "drop",
-             sep = " ",
-             remove = TRUE) %>%
-    dplyr::select(.data$icon_group, phase) %>%
-    dplyr::mutate(icon_group = stringr::str_remove_all(.data$icon_group, "\"")) %>%
-    dplyr::mutate(icon_group = stringr::str_remove_all(.data$icon_group, "\\{")) %>%
-    dplyr::mutate(icon_group = stringr::str_remove_all(.data$icon_group, "\\}")) %>%
-    tidyr::separate(col = .data$icon_group, into = c("order1", "icon1", "icon2"),
-             extra = "warn",
-             remove = FALSE,
-             sep = ":") %>%
-    tidyr::separate(col = .data$icon1, into = c("icon1", "order2"),
-             extra = "warn",
-             remove = FALSE,
-             sep = ",") %>%
-    dplyr::mutate(icon2 = stringr::str_remove_all(.data$icon2, ",")) %>%
-    dplyr::select(.data$icon1, .data$icon2, phase) %>%
-    dplyr::mutate(round = dplyr::row_number())
+  getPhases(data)
+  #create group key, keeping only the relevant columns
+  groupKey <- getGroupInfo(data) %>%
+    dplyr::select(-c(.data$reward, .data$EU, .data$rank))
+  phases <- list(phase$one, phase$two, phase$three)
 
-  if(pivot) {
-    icons <- icons %>%
-      tidyr::pivot_longer(cols = c(.data$icon1, .data$icon2),
-                   names_to = "image_order",
-                   values_to = "icon") %>%
-      dplyr::mutate(image_order = stringr::str_remove(.data$image_order, "icon"),
-             image_order = base::as.numeric(.data$image_order))
+  #For each phase of the data, get the icon information and then join it with
+  #the groupKey information. Specifically, add the icon groups, signs, and
+  #probabilities.
+  icons <- purrr::map_df(phases, ~getPhaseIcons(.x))
 
+  icon1 <- icons %>%
+    dplyr::select(.data$phase, .data$round, icon = .data$icon1) %>%
+    dplyr::left_join(groupKey, by = c("phase", "icon")) %>%
+    dplyr::rename(icon1 = .data$icon,
+                  icon1Group = .data$group,
+                  icon1Prob = .data$probability,
+                  icon1Sign = .data$sign)
+
+  icon2 <- icons %>%
+    dplyr::select(phase, .data$round, icon = .data$icon2) %>%
+    dplyr::left_join(groupKey, by = c("phase", "icon")) %>%
+    dplyr::rename(icon2 = .data$icon,
+                  icon2Group = .data$group,
+                  icon2Prob = .data$probability,
+                  icon2Sign = .data$sign)
+
+  together <- dplyr::left_join(icon1, icon2, by = c("phase", "round"))
+
+  # if specificPhase is specified, filter the data for that phase.
+  if (!base::is.null(specificPhase)) {
+    together <- together %>% dplyr::filter(phase == {{ specificPhase }})
   }
 
-  return(icons)
+  return(together)
 
 }
 
@@ -252,38 +304,31 @@ getImageShown <- function(phaseData){
 #' dataframe for easy manipulation: \itemize{ \item \code{\link{getPhases}}
 #' which separates the three phases of the task, saving them to the environment
 #' \code{phrase}, which is initialized behind the scenes. \item
-#' \code{\link{getGroupInfo}} which returns a dataframe of the icons and the
-#' payment weighting group they correspond to in each phase. It has the expected
-#' utility and relative ranks of choosing each option. \item \code{\link{getIcons}}
-#' which gets the icon options shown to the subject. \item
-#' \code{\link{getChoices}} which gets the choice the subject makes. \item
-#' \code{\link{getImageShown}} which gets the images the subject is shown after
-#' choosing an icon.}
+#' \code{\link{getIcons}} which gets the icon information shown to the subject
+#' per round. \item \code{\link{getChoices}} which gets the choice the subject
+#' makes. \item \code{\link{getImageShown}} which gets the images the subject is
+#' shown after choosing an icon.}
 #'
 #'
 #' @param data The data output from \code{\link{readChoices}}
 #'
-#' @return A dataframe 150 rows and 13 columns: \itemize{ \item \emph{phase:}
-#'   The phase the choices were made in. \item \emph{round:} The round number
-#'   these choices were made in, specific to the phase. \item
-#'   \emph{runningRound:} The round number these choices were made in (1-150),
-#'   independent of phase. This is useful for plotting the percent of optimal
-#'   choices over time. \item \emph{icon1:} The icon presented in the first
-#'   order position. \item \emph{rank1:} The rank of icon1. The higher this is,
-#'   the higher the expected utility of choosing icon1. \item \emph{icon2:} The
-#'   icon presented in the second order position. \item \emph{rank2:} The rank
-#'   of icon2. The higher this is, the higher the expected utility of choosing
-#'   icon2.\item \emph{option:} The option the subject chose. This should
-#'   correspond to the icon order as presented in the task. \item \emph{choice:}
-#'   The icon the subject chose. \item \emph{group:} The (payment weighting)
-#'   group the chosen icon corresponds to. \item \emph{image:} The image the
-#'   subject was shown after making a choice. \item \emph{optimal:} A binary
-#'   variable tracking whether or not the choice was optimal. This is 1 if the
-#'   rank of the icon chosen is higher than the rank of the one not chosen. It
-#'   is 0 otherwise. The ranks are based on the expected utility for each icon.
-#'   See \code{\link{getGroupInfo}} for that information. \item
-#'   \emph{percentOptimal:} The cumulative sum of optimal choices divided by the
-#'   total round (1-150).}
+#' @return A dataframe 150 rows and 13 columns: \itemize{ \item
+#'   \emph{phase:} The phase these icons were displayed in (constant for each
+#'   \code{phase} object). \item \emph{round:} The round number these icons were
+#'   displayed in, specific to the phase. \item \emph{icon1:} The icon presented
+#'   in the first order position. \item \emph{icon1Group:} The group mapping for
+#'   the icon presented in the first order position. \item \emph{icon1Prob:} The
+#'   probability of getting a reinforcing image by choosing icon 1. \item
+#'   \emph{icon1Sign:} The relative sign of the reinforcing image (positive or
+#'   negative) by choosing icon 1. \item \emph{icon2:} The icon presented in the
+#'   second order position. \item \emph{icon2Group:} The group mapping for the
+#'   icon presented in the second order position. \item \emph{icon2Prob:} The
+#'   probability of getting a reinforcing image by choosing icon 2. \item
+#'   \emph{icon2Sign:} The relative sign of the reinforcing image (positive or
+#'   negative) by choosing icon 2. \item \emph{chosenIcon:} The icon the subject
+#'   chose. \item \emph{chosenIconGroup:} The (payment weighting) group the
+#'   chosen icon corresponds to. \item \emph{reinforcer:} The image the subject
+#'   was shown (reinforced with) after making a choice.}
 #'
 #' @importFrom rlang .data
 #'
@@ -292,55 +337,22 @@ getImageShown <- function(phaseData){
 processChoiceData <- function(data){
 
   getPhases(data)
-  groupKey <- getGroupInfo(data)
   phases <- list(phase$one, phase$two, phase$three)
 
-  icons <- purrr::map_df(phases, ~getIcons(.x))
+  icons <- getIcons(data)
   choices <- purrr::map_df(phases, ~getChoices(.x))
   images <- purrr::map_df(phases, ~getImageShown(.x))
 
-
   combined <- dplyr::full_join(icons, choices, by = c("phase", "round")) %>%
     dplyr::full_join(images, by = c("phase", "round")) %>%
-    dplyr::select(phase, round, dplyr::everything())
+    #option seems unnecessary to include.
+    dplyr::select(-.data$option) %>%
+    dplyr::rename(chosenIconGroup = .data$group,
+                  chosenIcon = .data$choice,
+                  reinforcer = .data$image)
 
-  #join the ranks with icon1
-  icon1 <- combined %>%
-    dplyr::rename(icon = .data$icon1) %>%
-    dplyr::left_join(groupKey, by = c("phase", "icon")) %>%
-    dplyr::rename(icon1 = .data$icon,
-           rank1 =.data$rank) %>%
-    dplyr::select(-c(.data$group.y, .data$reward, .data$probability, .data$EU)) %>%
-    dplyr::relocate(.data$rank1, .after = .data$icon1)
+  return(combined)
 
-  #join the ranks with icon2
-  icon2 <- combined %>%
-    dplyr::rename(icon = icon2) %>%
-    dplyr::left_join(groupKey, by = c("phase", "icon")) %>%
-    dplyr::rename(icon2 = .data$icon,
-           rank2 = .data$rank) %>%
-    dplyr::select(-c(.data$group.y, .data$reward, .data$probability, .data$EU)) %>%
-    dplyr::relocate(.data$rank2, .after = .data$icon2)
-
-  #rejoin the icon1 and icon2 rankings together, add optimal and percentOptimal
-  #columns.
-  together <- dplyr::full_join(icon1, icon2,
-                               by = c("phase", "round", "icon1",
-                                      "icon2", "option", "choice",
-                                      "group.x", "image")) %>%
-    dplyr::rename(group = .data$group.x) %>%
-    dplyr::relocate(.data$rank2, .after = .data$icon2) %>%
-    dplyr::mutate(optimal = dplyr::case_when(option == 1 & .data$rank1 > .data$rank2 ~ 1,
-                                             option == 1 & .data$rank1 < .data$rank2 ~ 0,
-                                             option == 2 & .data$rank1 > .data$rank2 ~ 0,
-                                             option == 2 & .data$rank1 < .data$rank2 ~ 1)) %>%
-    dplyr::group_by(.data$phase) %>%
-    dplyr::mutate(percentOptimal = base::cumsum(.data$optimal)/dplyr::row_number()) %>%
-    dplyr::ungroup() %>%
-    dplyr::mutate(runningRound = dplyr::row_number()) %>%
-    dplyr::relocate(.data$runningRound, .after = .data$round)
-
-  return(together)
 }
 
 
@@ -459,7 +471,8 @@ getGroupInfo <- function(data) {
     dplyr::select(phase, .data$icon, .data$group, .data$reward, .data$probability) %>%
     dplyr::mutate(EU = base::as.numeric(.data$reward) * .data$probability) %>%
     dplyr::group_by(phase) %>%
-    dplyr::mutate(rank = dplyr::min_rank(.data$EU))
+    dplyr::mutate(rank = dplyr::min_rank(.data$EU),
+                  sign = ifelse(.data$EU > 0, "pos", "neg"))
 
   return(output)
 
@@ -526,7 +539,7 @@ plotPercentOptimal <- function(processedData, facet = FALSE, subjectName = NULL)
 
 
   plot <- ggplot2::ggplot(processedData, ggplot2::aes(x = .data$runningRound, y = .data$percentOptimal)) +
-    ggplot2::geom_line(ggplot2::aes(color = .data$subject, group = interaction(as.factor(subject), as.factor(phase))), size = 1) +
+    ggplot2::geom_line(ggplot2::aes(color = .data$subject, group = interaction(as.factor(.data$subject), as.factor(.data$phase))), size = 1) +
     ggplot2::geom_point(data = segmentDots, ggplot2::aes(x = .data$x, y = .data$y, color = .data$subject), fill = "white", size = 2, stroke = 1, shape = 21) +
     ggplot2::scale_y_continuous(labels = scales::percent, breaks = c(seq(0,1, by = 0.2))) +
     ggplot2::labs(x = "Round Number",
