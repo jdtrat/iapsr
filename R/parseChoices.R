@@ -101,6 +101,8 @@ getPhases <- function(data) {
   phase$finalIcon <- data %>%
     dplyr::filter(dplyr::between(.data$row, startFinalIcon, endFinalIcon - 1))
 
+  return(phase)
+
 }
 
 
