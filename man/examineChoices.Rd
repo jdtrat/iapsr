@@ -21,15 +21,30 @@ A data frame consisting of the phase 1, 2, and 3 information for each
   optimal column is filled with NAs.
 }
 \description{
-Examine subjects' choice preferences
+This function takes individuals' IAPS ratings and choice task performance and
+returns an optimal column describing whether their choice for a given round
+was optimal given their preference for the neutral image relative to the
+reinforcers used. It manipulates the data to get the mean rating of the
+positive images (phase 1) and negative images (phase 2) that each subject saw
+and the neutral image rating and then tests to see if the person prefers gray
+over their average rating of the reinforcing images they saw during phase 1
+and 2. It then calculates an optimal column based on each subjects'
+preference for the neutral image relative to the reinforcers in phase 1 and
+2.
+}
+\details{
+Note that both the choice columns and data columns must have a subject
+identifier, so ensure that there is a subject column with a unique ID.
 }
 \examples{
 
-\dontrun{
+choice <- processChoiceData(sampleChoiceData) \%>\%
+dplyr::mutate(subject = "RJT", .before = phase)
 
-choice <- processChoiceData(sampleChoiceData)
-rate <- processRatingsData(sampleRatingsData)
+rate <- processRatingsData(sampleRatingsData) \%>\%
+regSetup() \%>\%
+dplyr::mutate(subject = "RJT", .before = IAPS)
 
-examineChoices(choice, rate) }
+examineChoices(choice, rate)
 
 }

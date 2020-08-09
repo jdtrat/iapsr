@@ -34,19 +34,14 @@ icons that have the highest probability of getting a reinforcer.
 }
 \examples{
 
-\dontrun{
-
-
-
-
 choiced <- processChoiceData(sampleChoiceData) \%>\%
-  mutate(subject = "RJT", .before = phase)
+  dplyr::mutate(subject = "RJT", .before = phase)
 
 rated <- processRatingsData(sampleRatingsData) \%>\%
   regSetup() \%>\%
-  mutate(subject = "RJT", .before = IAPS)
+  dplyr::mutate(subject = "RJT", .before = IAPS)
 
-testDF <- left_join(choiced, rated \%>\%
+testDF <- dplyr::left_join(choiced, rated \%>\%
 dplyr::rename(reinforcer = IAPS),
 by = c("subject", "reinforcer")) \%>\%
  dplyr::filter(reinforcer != "7006") \%>\%
@@ -54,17 +49,16 @@ by = c("subject", "reinforcer")) \%>\%
  base::ifelse(reinforcer == "neutral", "neutral", "reinforcer"))
 
 testValue <- testDF \%>\%
-  filter(phase == 1) \%>\%
-  group_by(subject, reinforcer) \%>\%
-  summarize(meanNeg = -mean(negative), .groups = "drop") \%>\%
-  pivot_wider(names_from = reinforcer, values_from = meanNeg) \%>\%
-  mutate(prefersGrayNegative = ifelse(neutral > reinforcer, TRUE, FALSE)) \%>\%
-  pull(prefersGrayNegative, subject) \%>\%
-  as.list()
+  dplyr::filter(phase == 1) \%>\%
+  dplyr::group_by(subject, reinforcer) \%>\%
+  dplyr::summarize(meanNeg = -mean(negative), .groups = "drop") \%>\%
+  tidyr::pivot_wider(names_from = reinforcer, values_from = meanNeg) \%>\%
+  dplyr::mutate(prefersGrayNegative = base::ifelse(neutral > reinforcer, TRUE, FALSE)) \%>\%
+  dplyr::pull(prefersGrayNegative, subject) \%>\%
+  base::as.list()
 
-testID <- names(testValue)
+testID <- base::names(testValue)
 
-grayNeg(testDF, testValue[[1]], testID)
+iapsr:::grayNeg(testDF, testValue[[1]], testID)
 
-}
 }

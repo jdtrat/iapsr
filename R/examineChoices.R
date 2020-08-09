@@ -22,45 +22,39 @@
 #'   subject, an optimal column based on the subject's preference for the
 #'   neutral image relative to the reinforcers.
 #'
-#' @export
-#'
 #' @importFrom rlang .data
 #'
 #' @examples
 #'
-#' \dontrun{
-#'
-#'
-#'
 #'
 #' choiced <- processChoiceData(sampleChoiceData) %>%
-#'   mutate(subject = "RJT", .before = phase)
+#'   dplyr::mutate(subject = "RJT", .before = phase)
 #'
 #' rated <- processRatingsData(sampleRatingsData) %>%
 #'   regSetup() %>%
-#'   mutate(subject = "RJT", .before = IAPS)
+#'   dplyr::mutate(subject = "RJT", .before = IAPS)
 #'
-#' testDF <- left_join(choiced,
+#' testDF <- dplyr::left_join(choiced,
 #' rated %>% dplyr::rename(reinforcer = IAPS),
 #' by = c("subject", "reinforcer")) %>%
 #' dplyr::filter(reinforcer != "7006") %>%
-#'dplyr::mutate(reinforcer =
-#'base::ifelse(reinforcer == "neutral", "neutral", "reinforcer"))
+#' dplyr::mutate(reinforcer =
+#' base::ifelse(reinforcer == "neutral", "neutral", "reinforcer"))
 #'
 #' testValue <- testDF %>%
-#'   filter(phase == 1) %>%
-#'   group_by(subject, reinforcer) %>%
-#'   summarize(meanPos = mean(positive), .groups = "drop") %>%
-#'   pivot_wider(names_from = reinforcer, values_from = meanPos) %>%
-#'   mutate(prefersGrayPositive = ifelse(neutral > reinforcer, TRUE, FALSE)) %>%
-#'   pull(prefersGrayPositive, subject) %>%
-#'   as.list()
+#'   dplyr::filter(phase == 1) %>%
+#'   dplyr::group_by(subject, reinforcer) %>%
+#'   dplyr::summarize(meanPos = mean(positive), .groups = "drop") %>%
+#'   tidyr::pivot_wider(names_from = reinforcer, values_from = meanPos) %>%
+#'   dplyr::mutate(prefersGrayPositive = base::ifelse(neutral > reinforcer, TRUE, FALSE)) %>%
+#'   dplyr::pull(prefersGrayPositive, subject) %>%
+#'   base::as.list()
 #'
-#' testID <- names(testValue)
+#' testID <- base::names(testValue)
 #'
-#' grayPos(testDF, testValue[[1]], testID)
+#' iapsr:::grayPos(testDF, testValue[[1]], testID)
 #'
-#' }
+#'
 
 grayPos <- function(df, value, ID) {
 
@@ -118,23 +112,16 @@ grayPos <- function(df, value, ID) {
 #'
 #' @importFrom rlang .data
 #'
-#' @export
-#'
 #' @examples
 #'
-#' \dontrun{
-#'
-#'
-#'
-#'
 #' choiced <- processChoiceData(sampleChoiceData) %>%
-#'   mutate(subject = "RJT", .before = phase)
+#'   dplyr::mutate(subject = "RJT", .before = phase)
 #'
 #' rated <- processRatingsData(sampleRatingsData) %>%
 #'   regSetup() %>%
-#'   mutate(subject = "RJT", .before = IAPS)
+#'   dplyr::mutate(subject = "RJT", .before = IAPS)
 #'
-#' testDF <- left_join(choiced, rated %>%
+#' testDF <- dplyr::left_join(choiced, rated %>%
 #' dplyr::rename(reinforcer = IAPS),
 #' by = c("subject", "reinforcer")) %>%
 #'  dplyr::filter(reinforcer != "7006") %>%
@@ -142,19 +129,18 @@ grayPos <- function(df, value, ID) {
 #'  base::ifelse(reinforcer == "neutral", "neutral", "reinforcer"))
 #'
 #' testValue <- testDF %>%
-#'   filter(phase == 1) %>%
-#'   group_by(subject, reinforcer) %>%
-#'   summarize(meanNeg = -mean(negative), .groups = "drop") %>%
-#'   pivot_wider(names_from = reinforcer, values_from = meanNeg) %>%
-#'   mutate(prefersGrayNegative = ifelse(neutral > reinforcer, TRUE, FALSE)) %>%
-#'   pull(prefersGrayNegative, subject) %>%
-#'   as.list()
+#'   dplyr::filter(phase == 1) %>%
+#'   dplyr::group_by(subject, reinforcer) %>%
+#'   dplyr::summarize(meanNeg = -mean(negative), .groups = "drop") %>%
+#'   tidyr::pivot_wider(names_from = reinforcer, values_from = meanNeg) %>%
+#'   dplyr::mutate(prefersGrayNegative = base::ifelse(neutral > reinforcer, TRUE, FALSE)) %>%
+#'   dplyr::pull(prefersGrayNegative, subject) %>%
+#'   base::as.list()
 #'
-#' testID <- names(testValue)
+#' testID <- base::names(testValue)
 #'
-#' grayNeg(testDF, testValue[[1]], testID)
+#' iapsr:::grayNeg(testDF, testValue[[1]], testID)
 #'
-#' }
 grayNeg <- function(df, value, ID) {
 
   # If they they prefer gray to negatively reinforcing images, then it's optimal
@@ -188,6 +174,21 @@ grayNeg <- function(df, value, ID) {
 
 #' Examine subjects' choice preferences
 #'
+#'
+#' This function takes individuals' IAPS ratings and choice task performance and
+#' returns an optimal column describing whether their choice for a given round
+#' was optimal given their preference for the neutral image relative to the
+#' reinforcers used. It manipulates the data to get the mean rating of the
+#' positive images (phase 1) and negative images (phase 2) that each subject saw
+#' and the neutral image rating and then tests to see if the person prefers gray
+#' over their average rating of the reinforcing images they saw during phase 1
+#' and 2. It then calculates an optimal column based on each subjects'
+#' preference for the neutral image relative to the reinforcers in phase 1 and
+#' 2.
+#'
+#' Note that both the choice columns and data columns must have a subject
+#' identifier, so ensure that there is a subject column with a unique ID.
+#'
 #' @param choiceData The output of \code{\link{processChoiceData}} on one or
 #'   more subjects.
 #' @param ratingsData The output of \code{\link{processRatingsData}} on one or
@@ -205,12 +206,14 @@ grayNeg <- function(df, value, ID) {
 #'
 #' @examples
 #'
-#' \dontrun{
+#' choice <- processChoiceData(sampleChoiceData) %>%
+#' dplyr::mutate(subject = "RJT", .before = phase)
 #'
-#' choice <- processChoiceData(sampleChoiceData)
-#' rate <- processRatingsData(sampleRatingsData)
+#' rate <- processRatingsData(sampleRatingsData) %>%
+#' regSetup() %>%
+#' dplyr::mutate(subject = "RJT", .before = IAPS)
 #'
-#' examineChoices(choice, rate) }
+#' examineChoices(choice, rate)
 #'
 examineChoices <- function(choiceData, ratingsData) {
 
