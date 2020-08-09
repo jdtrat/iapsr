@@ -1,4 +1,3 @@
-
 #' Determine if the neutral image is preferred to positive reinforcers
 #'
 #' This function takes in the data frame that contains the subject choice and
@@ -220,7 +219,13 @@ examineChoices <- function(choiceData, ratingsData) {
   data <- dplyr::left_join(choiceData, ratingsData %>%
                              dplyr::rename(reinforcer = .data$IAPS),
                            by = c("subject", "reinforcer")) %>%
-    dplyr::filter(.data$reinforcer != "7006") %>%
+    #this function is mutating the positive and negative rows whenever the
+    #reinforcing image was 7006. The values used are the average positive
+    #and negative ratings from the original cohort's rating of image 7006.
+    #new cohort subjects were not asked to rate this. The code for this is:
+    #ratingsOldCohort %>% filter(IAPS == "7006") %>%
+    #summarize(Pos = mean(positive), Neg = mean(negative))
+    mutate_rows(.data$reinforcer == "7006", positive = 2.630435, negative = 1.73913) %>%
     dplyr::mutate(reinforcer = base::ifelse(.data$reinforcer == "neutral", "neutral", "reinforcer"))
 
 
