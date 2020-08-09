@@ -269,3 +269,169 @@ examineChoices <- function(choiceData, ratingsData) {
   return(output)
 
 }
+
+
+
+#' Plot the Percent of Optimal Choices for Each Subject
+#'
+#' This function is an adapted form of \code{\link{plotPercentOptimal}}. It
+#' takes the output of \code{\link{examineChoices}}. It checks to see if the
+#' data has been modified to include runningRound and percentOptimal and, if
+#' not, does so. See examples for more detail.
+#'
+#' @param processedData The output of \code{\link{processChoiceData}}.
+#' @param facet Logical: TRUE and plots will be faceted by subject. FALSE and it
+#'   won't. Default is FALSE.
+#' @param subjectName Optional argument to include a subject name if plotting
+#'   for only one subject. Name must be in quotations.
+#'
+#' @importFrom rlang .data
+#'
+#' @return A plot showing the percent of optimal choices over time (round
+#'   number), with each phase specified.
+#' @export
+#'
+#' @examples
+#'
+#' choice <- processChoiceData(sampleChoiceData) %>%
+#' dplyr::mutate(subject = "RJT", .before = phase)
+#'
+#' rate <- processRatingsData(sampleRatingsData) %>%
+#' regSetup() %>%
+#' dplyr::mutate(subject = "RJT", .before = IAPS)
+#'
+#' # The plotExamined can be used with the output of examineChoices that is
+#' # modified:
+#' examineChoices(choice, rate) %>%
+#'  dplyr::group_by(subject, phase) %>%
+#'  dplyr::mutate(percentOptimal = base::cumsum(optimal) / dplyr::row_number()) %>%
+#'  dplyr::ungroup() %>%
+#'  dplyr::group_by(subject) %>%
+#'  dplyr::mutate(runningRound = dplyr::row_number()) %>%
+#'  dplyr::ungroup() %>% plotExamined()
+#'
+#' # This function can be used with the output of examineChoices that is not
+#' # modified and will modify it internally:
+#'
+#' examineChoices(choice, rate) %>% plotExamined()
+#'
+#'
+
+plotExamined <- function(processedData, facet = FALSE, subjectName = NULL) {
+
+  myGGTheme <- ggplot2::theme(plot.title = ggplot2::element_text(hjust=0.5, face = "bold.italic", size=16), #plot title aesthetics
+                              plot.subtitle = ggplot2::element_text(hjust = 0.5, face = "bold", size = 12), #plot subtitle aesthetics
+                              axis.title.x = ggplot2::element_text(size = 12, color= "black", face = "bold"), #x axis title aesthetics
+                              axis.title.y = ggplot2::element_text(size = 12, color= "black", face = "bold"), #y axis title aesthetics
+                              axis.text.x = ggplot2::element_text(angle = 0, hjust = 0.5, size = 12),
+                              #legend aesthetics
+                              legend.title = ggplot2::element_text(size= 14,
+                                                                   color = "black",
+                                                                   face = "bold"),
+                              legend.title.align = 0.5,
+                              legend.text = ggplot2::element_text(size = 10,
+                                                                  color = "black",
+                                                                  face = "bold"),
+                              legend.text.align = 0)
+
+  #Check to see if the processedData was manipulated to have the running Round
+  #and the percentOptimal column. If not, manipulate it. Also remove phase 3.
+
+  if ("runningRound" %in% base::names(processedData) & "percentOptimal" %in% base::names(processedData)) {
+    #remove phase 3 for this plot.
+    plotData <- processedData %>% dplyr::filter(.data$phase != 3)
+  } else if (!"runningRound" %in% base::names(processedData) & !"percentOptimal" %in% base::names(processedData)) {
+
+    plotData <- processedData %>%
+      dplyr::group_by(.data$subject, .data$phase) %>%
+      dplyr:: mutate(percentOptimal = base::cumsum(.data$optimal) / dplyr::row_number()) %>%
+      dplyr::ungroup() %>%
+      dplyr::group_by(.data$subject) %>%
+      dplyr::mutate(runningRound = dplyr::row_number()) %>%
+      dplyr::ungroup() %>%
+      dplyr::filter(.data$phase != 3)
+  }
+
+
+
+
+
+  phaseLabels <- tibble::tribble(~label,      ~x,             ~y,
+                                 "Phase 1", 12.5, base::max(plotData$percentOptimal) + 0.05,
+                                 "Phase 2", 50,   base::max(plotData$percentOptimal) + 0.05)
+
+
+  #If only plotting for one subject, then subject column won't be in the
+  #processedData. If the subjectName argument is defined, the subject column
+  #will take that value. Else, it will just say "Sample".
+  if (!"subject" %in% base::names(plotData)) {
+    if (base::is.null(subjectName)) {
+      plotData <- plotData %>% dplyr::mutate(subject = "Sample")
+    } else if (!base::is.null(subjectName)) {
+      plotData <- plotData %>% dplyr::mutate(subject = {{ subjectName }})
+    }
+  }
+
+  #this is a tribble that contains the x and y coordinates for the end of each
+  #line segment to be plotted on the discontinuous optimal choice plot.
+  segmentDots <- plotData %>%
+    dplyr::group_by(.data$subject) %>%
+    dplyr::slice(c(1, 25, 26,75)) %>%
+    dplyr::mutate(x = c(1, 25, 26, 75)) %>%
+    dplyr::ungroup() %>%
+    dplyr::select(.data$subject, .data$x, y = .data$percentOptimal)
+
+  plot <- plotData %>%
+    ggplot2::ggplot(ggplot2::aes(x = .data$runningRound, y = .data$percentOptimal)) +
+    ggplot2::geom_line(ggplot2::aes(color = .data$subject, group = interaction(as.factor(.data$subject), as.factor(.data$phase))), size = 1) +
+    ggplot2::geom_point(data = segmentDots, ggplot2::aes(x = .data$x, y = .data$y, color = .data$subject), fill = "white", size = 2, stroke = 1, shape = 21) +
+    ggplot2::scale_y_continuous(labels = scales::percent, breaks = c(seq(0,1, by = 0.2))) +
+    ggplot2::scale_x_continuous(breaks = c(0, 10, seq(25, 75, by = 10))) +
+    ggplot2::labs(x = "Round Number",
+                  y = "Percent of Optimal choices",
+                  title = "Optimal Choices Over Time",
+                  color = "Subject") +
+    #geom_vline(xintercept = c(25, 75)) +
+    myGGTheme +
+    ggplot2::theme(panel.background = ggplot2::element_blank(),
+                   panel.grid.major = ggplot2::element_blank(),
+                   panel.grid.minor = ggplot2::element_blank(),
+                   axis.line = ggplot2::element_line(colour = "black"),
+                   strip.background = ggplot2::element_rect(fill = "aliceblue")) +
+    ggplot2::scale_size(guide = "none")#remove the size legend
+
+  if(facet) {
+    plot <- plot +
+      #annotate the background for phase 1
+      ggplot2::annotate(geom = "rect", xmin = 0, xmax = 25, ymin = -0.05, ymax = max(plotData$percentOptimal) + 0.1, fill = "green", alpha = 0.125) +
+      #annotate the background for phase 2
+      ggplot2::annotate(geom = "rect", xmin = 25, xmax = 77, ymin = -0.05, ymax = max(plotData$percentOptimal) + 0.1, fill = "blue", alpha = 0.125) +
+      ggplot2::geom_text(data = phaseLabels,
+                         mapping = ggplot2::aes(x = .data$x,
+                                                y = .data$y,
+                                                label = .data$label,
+                                                fontface = "bold"),
+                         size = 2,
+                         show.legend = FALSE) +
+      ggplot2::facet_wrap(~.data$subject) +
+      ggplot2::theme(legend.position = "none")
+  } else if (!facet) {
+    plot <- plot +
+      #annotate the background for phase 1
+      ggplot2::annotate(geom = "rect", xmin = 0, xmax = 25, ymin = -0.05, ymax = max(plotData$percentOptimal) + 0.1, fill = "green", alpha = 0.125) +
+      #annotate the background for phase 2
+      ggplot2::annotate(geom = "rect", xmin = 25, xmax = 75.75, ymin = -0.05, ymax = max(plotData$percentOptimal) + 0.1, fill = "blue", alpha = 0.125) +
+      ggplot2::geom_text(data = phaseLabels,
+                         mapping = ggplot2::aes(x = .data$x,
+                                                y = .data$y,
+                                                label = .data$label,
+                                                fontface = "bold"),
+                         size = 4.5,
+                         show.legend = FALSE)
+
+  }
+
+  return(plot)
+
+}
+
