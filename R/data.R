@@ -26,3 +26,15 @@
 #' @source Kishida Lab (researcher)
 "sampleRatingsData"
 
+#' Images in each group -- PRPT Scale
+#'
+#' A dataset containing the images used in each of the PRPT groups that the IAPS Choice task is modeled upon.
+#'
+#' @format A data frame with 190 rows and 2 columns
+#' \describe{
+#'   \item{IAPS}{The IAPS ID.}
+#'   \item{group}{The PRPT group to which the image was mapped.}
+#' }
+#' @source Kishida Lab
+"imageGroupings"
+
