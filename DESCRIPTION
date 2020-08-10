@@ -24,5 +24,6 @@ Imports:
     ggplot2,
     scales,
     tibble,
-    rlang
+    rlang,
+    janitor
 RoxygenNote: 7.1.1.9000

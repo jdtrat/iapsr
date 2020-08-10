@@ -236,7 +236,7 @@ examineChoices <- function(choiceData, ratingsData) {
     dplyr::filter(.data$phase == 1) %>%
     dplyr::group_by(.data$subject, .data$reinforcer) %>%
     dplyr::summarize(meanPos = mean(.data$positive), .groups = "drop") %>%
-    tidyr::pivot_wider(names_from = .data$reinforcer, values_from =.data$ meanPos) %>%
+    tidyr::pivot_wider(names_from = .data$reinforcer, values_from =.data$meanPos) %>%
     dplyr::mutate(prefersGrayPositive = base::ifelse(.data$neutral > .data$reinforcer, TRUE, FALSE)) %>%
     dplyr::pull(.data$prefersGrayPositive, .data$subject) %>%
     base::as.list()
