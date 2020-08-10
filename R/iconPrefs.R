@@ -207,3 +207,58 @@ getIconDiffs <- function(choiceData, side = FALSE) {
   return(iconDiffs)
 
 }
+
+
+#' Organize Icon Group Mappings for Every Subject
+#'
+#' This function maps the group-icon information for each subject with the
+#' difference in their icon preference from before the choice task and after. It
+#' calls the functions \code{\link{getGroupInfo}} and
+#' \code{\link{getIconDiffs}}.
+#'
+#' @param rawChoiceDF The output of \code{\link{readChoices}}.
+#' @param processedRatingDF The output of \code{\link{processRatingsData}}.
+#'
+#' @return A dataframe with the subject-specific mean rating for each icon class
+#'   (corresponding to the PRPT task) as well as the EU and difference in
+#'   preference over time.
+#' @export
+#'
+#' @examples
+#'
+#' #RJTRJTRJT is the subject name for this example. It is set up this in the example
+#' #since the function is built for bactch processing and parses the subject ID out
+#' #of the file path which is nine characters.
+#' choice <- base::list("Path File/choice/RJTRJTRJTchoice.txt.txt" = sampleChoiceData)
+#' rate <- sampleRatingsData %>%
+#'  processRatingsData() %>%
+#'  #add the picture 7006 to prevent error since new cohort didn't rate it.
+#'  dplyr::add_row(round = 00, picture = "7006",
+#'                 question = "negative", rating = 1.73913) %>%
+#'  dplyr::add_row(round = 01, picture = "7006",
+#'                 question = "positive", rating = 2.630435) %>%
+#'  regSetup() %>%
+#'  dplyr::mutate(subject = "RJTRJTRJT", .before = IAPS)
+#' organizeIconGroupings(choice, rate)
+#'
+organizeIconGroupings <- function(rawChoiceDF, processedRatingDF) {
+
+  groupInfo <- purrr::map_df(rawChoiceDF, ~getGroupInfo(.x), .id = "subject") %>%
+    dplyr::mutate(subject = stringr::str_extract(.data$subject, "[:graph:]{9}(?=choice.txt)"))
+
+  iconDiffs <- purrr::map_df(rawChoiceDF, ~getIconDiffs(.x), .id = "subject") %>%
+    dplyr::mutate(subject = stringr::str_extract(.data$subject, "[:graph:]{9}(?=choice.txt)"))
+
+  iapsr::imageGroupings %>%
+    dplyr::left_join(processedRatingDF, by = "IAPS") %>%
+    dplyr::group_by(.data$subject, .data$group) %>%
+    dplyr::summarize(meanClassRating = mean(.data$positive), .groups = "drop") %>%
+    dplyr::rename(reward = .data$group) %>%
+    dplyr::left_join(groupInfo, by = c("subject", "reward")) %>%
+    dplyr::mutate(EU = .data$meanClassRating * .data$probability) %>%
+    dplyr::arrange(.data$subject, .data$phase) %>%
+    dplyr::left_join(iconDiffs, by = c("subject", "icon"))
+
+}
+
+
