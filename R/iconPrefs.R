@@ -218,6 +218,8 @@ getIconDiffs <- function(choiceData, side = FALSE) {
 #'
 #' @param rawChoiceDF The output of \code{\link{readChoices}}.
 #' @param processedRatingDF The output of \code{\link{processRatingsData}}.
+#' @param side Logical: TRUE and the difference will be categorized by the side
+#'   the icon appeared on the screen. FALSE and it won't be. Default is FALSE.
 #'
 #' @return A dataframe with the subject-specific mean rating for each icon class
 #'   (corresponding to the PRPT task) as well as the EU and difference in
@@ -241,12 +243,12 @@ getIconDiffs <- function(choiceData, side = FALSE) {
 #'  dplyr::mutate(subject = "RJTRJTRJT", .before = IAPS)
 #' organizeIconGroupings(choice, rate)
 #'
-organizeIconGroupings <- function(rawChoiceDF, processedRatingDF) {
+organizeIconGroupings <- function(rawChoiceDF, processedRatingDF, side = FALSE) {
 
   groupInfo <- purrr::map_df(rawChoiceDF, ~getGroupInfo(.x), .id = "subject") %>%
     dplyr::mutate(subject = stringr::str_extract(.data$subject, "[:graph:]{9}(?=choice.txt)"))
 
-  iconDiffs <- purrr::map_df(rawChoiceDF, ~getIconDiffs(.x), .id = "subject") %>%
+  iconDiffs <- purrr::map_df(rawChoiceDF, ~getIconDiffs(.x, side = side), .id = "subject") %>%
     dplyr::mutate(subject = stringr::str_extract(.data$subject, "[:graph:]{9}(?=choice.txt)"))
 
   iapsr::imageGroupings %>%

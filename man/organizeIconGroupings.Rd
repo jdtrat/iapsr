@@ -4,12 +4,15 @@
 \alias{organizeIconGroupings}
 \title{Organize Icon Group Mappings for Every Subject}
 \usage{
-organizeIconGroupings(rawChoiceDF, processedRatingDF)
+organizeIconGroupings(rawChoiceDF, processedRatingDF, side = FALSE)
 }
 \arguments{
 \item{rawChoiceDF}{The output of \code{\link{readChoices}}.}
 
 \item{processedRatingDF}{The output of \code{\link{processRatingsData}}.}
+
+\item{side}{Logical: TRUE and the difference will be categorized by the side
+the icon appeared on the screen. FALSE and it won't be. Default is FALSE.}
 }
 \value{
 A dataframe with the subject-specific mean rating for each icon class
