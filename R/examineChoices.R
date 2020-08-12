@@ -51,11 +51,11 @@
 #'
 #' testID <- base::names(testValue)
 #'
-#' iapsr:::grayPos(testDF, testValue[[1]], testID)
+#' iapsr:::getPhase1Optimal(testDF, testValue[[1]], testID)
 #'
 #'
 
-grayPos <- function(df, value, ID) {
+getPhase1Optimal <- function(df, value, ID) {
 
   #if they do prefer gray, then the optimal choice is to choose the icon that
   #has the lowest probability of getting a reinforcer.
@@ -100,9 +100,11 @@ grayPos <- function(df, value, ID) {
 #'
 #' @param df The data frame that contains the subject choice and rating data
 #'   (see examples).
-#' @param value Logical: TRUE or FALSE signifying whether or not an individual
-#'   prefers the neutral gray image to negative reinforcers.
 #' @param ID Character: Subject ID for whom we are determining preference.
+#' @param posValue Logical: TRUE or FALSE signifying whether or not an individual
+#'   prefers the neutral gray image to positive reinforcers.
+#' @param negValue Logical: TRUE or FALSE signifying whether or not an individual
+#'   prefers the neutral gray image to negative reinforcers.
 #'
 #' @return A data frame consisting of the phase 2 information for the specified
 #'   subject. It has, in addition to the choice and rating information for a
@@ -138,36 +140,68 @@ grayPos <- function(df, value, ID) {
 #'
 #' testID <- base::names(testValue)
 #'
-#' iapsr:::grayNeg(testDF, testValue[[1]], testID)
+#' #iapsr:::getPhase2Optimal(testDF, testValue[[1]], testID)
 #'
-grayNeg <- function(df, value, ID) {
+getPhase2Optimal <- function(df, posValue, negValue, ID) {
 
-  # If they they prefer gray to negatively reinforcing images, then it's optimal
-  # to choose the icons that lead to neutral with the highest probability (leads
-  # to reinforcers with the lowest probability).
-  if (value) {
+  df <- df %>%
+    dplyr::filter(phase == 2 & .data$subject == {{ ID }}) %>%
+    dplyr::group_by(round) %>%
+    tidyr::nest()
 
-    phase2 <- df %>%
-      dplyr::filter(phase == 2 & .data$subject == {{ ID }}) %>%
-      dplyr::mutate(optimal = dplyr::case_when(.data$chosenIcon == .data$icon1 & .data$icon1Prob > .data$icon2Prob ~ 0,
-                                               .data$chosenIcon == .data$icon1 & .data$icon1Prob < .data$icon2Prob ~ 1,
-                                               .data$chosenIcon == .data$icon2 & .data$icon1Prob > .data$icon2Prob ~ 1,
-                                               .data$chosenIcon == .data$icon2 & .data$icon1Prob < .data$icon2Prob ~ 0))
+  optimalFunk <- function(df, posValue, negValue) {
 
-    # If they they prefer negatively reinforcing images over gray, then it's optimal to
-    # choose the icons that lead to them with the highest probability.
-  } else if (!value) {
+    # If they they prefer gray to negatively reinforcing images, then it's optimal
+    # to choose the icons that lead to neutral with the highest probability (leads
+    # to reinforcers with the lowest probability).
+    if (negValue & df$icon1Sign == "neg") {
 
-    phase2 <- df %>%
-      dplyr:: filter(phase == 2 & .data$subject == {{ ID }}) %>%
-      dplyr::mutate(optimal = dplyr::case_when(.data$chosenIcon == .data$icon1 & .data$icon1Prob > .data$icon2Prob ~ 1,
-                                               .data$chosenIcon == .data$icon1 & .data$icon1Prob < .data$icon2Prob ~ 0,
-                                               .data$chosenIcon == .data$icon2 & .data$icon1Prob > .data$icon2Prob ~ 0,
-                                               .data$chosenIcon == .data$icon2 & .data$icon1Prob < .data$icon2Prob ~ 1))
+      df <- df %>%
+        dplyr::mutate(optimal = dplyr::case_when(.data$chosenIcon == .data$icon1 & .data$icon1Prob > .data$icon2Prob ~ 0,
+                                                 .data$chosenIcon == .data$icon1 & .data$icon1Prob < .data$icon2Prob ~ 1,
+                                                 .data$chosenIcon == .data$icon2 & .data$icon1Prob > .data$icon2Prob ~ 1,
+                                                 .data$chosenIcon == .data$icon2 & .data$icon1Prob < .data$icon2Prob ~ 0))
+
+      # If they they prefer negatively reinforcing images over gray, then it's optimal to
+      # choose the icons that lead to them with the highest probability.
+    } else if (!negValue & df$icon1Sign == "neg") {
+
+      df <- df %>%
+        dplyr::mutate(optimal = dplyr::case_when(.data$chosenIcon == .data$icon1 & .data$icon1Prob > .data$icon2Prob ~ 1,
+                                                 .data$chosenIcon == .data$icon1 & .data$icon1Prob < .data$icon2Prob ~ 0,
+                                                 .data$chosenIcon == .data$icon2 & .data$icon1Prob > .data$icon2Prob ~ 0,
+                                                 .data$chosenIcon == .data$icon2 & .data$icon1Prob < .data$icon2Prob ~ 1))
+
+    }
+
+    if (posValue & df$icon1Sign == "pos") {
+
+      df <- df %>%
+        dplyr::mutate(optimal = dplyr::case_when(.data$chosenIcon == .data$icon1 & .data$icon1Prob > .data$icon2Prob ~ 0,
+                                                 .data$chosenIcon == .data$icon1 & .data$icon1Prob < .data$icon2Prob ~ 1,
+                                                 .data$chosenIcon == .data$icon2 & .data$icon1Prob > .data$icon2Prob ~ 1,
+                                                 .data$chosenIcon == .data$icon2 & .data$icon1Prob < .data$icon2Prob ~ 0))
+
+      #If thy don't prefer gray, then the optimal choice is to choose the icon
+      #that has the highest probability of getting a reinforcer.
+    } else if (!posValue & df$icon1Sign == "pos") {
+
+      df <- df %>%
+        dplyr::mutate(optimal = dplyr::case_when(.data$chosenIcon == .data$icon1 & .data$icon1Prob > .data$icon2Prob ~ 1,
+                                                 .data$chosenIcon == .data$icon1 & .data$icon1Prob < .data$icon2Prob ~ 0,
+                                                 .data$chosenIcon == .data$icon2 & .data$icon1Prob > .data$icon2Prob ~ 0,
+                                                 .data$chosenIcon == .data$icon2 & .data$icon1Prob < .data$icon2Prob ~ 1))
+
+    }
+
+    return(df)
 
   }
 
-  return(phase2)
+  output <- purrr::map_df(df$data, ~optimalFunk(.x, posValue, negValue), .id = "round") %>%
+    dplyr::mutate(round = base::as.numeric(round), .after = phase)
+
+  return(output)
 
 }
 
@@ -226,45 +260,57 @@ examineChoices <- function(choiceData, ratingsData) {
     #ratingsOldCohort %>% filter(IAPS == "7006") %>%
     #summarize(Pos = mean(positive), Neg = mean(negative))
     mutate_rows(.data$reinforcer == "7006", positive = 2.630435, negative = 1.73913) %>%
-    dplyr::mutate(reinforcer = base::ifelse(.data$reinforcer == "neutral", "neutral", "reinforcer"))
+    dplyr::mutate(reinforcer_group = base::ifelse(.data$reinforcer == "neutral", "neutral", "reinforce_avg"))
 
 
   #For phase 1, get the mean rating of the positive images seen and the neutral image
   #then test to see if the person prefers gray over their average (positive) rating of the
   #reinforcing images they saw.
-  grayPosValues <- data %>%
+  phase1 <- data %>%
     dplyr::filter(.data$phase == 1) %>%
-    dplyr::group_by(.data$subject, .data$reinforcer) %>%
+    dplyr::group_by(.data$subject, .data$reinforcer_group) %>%
     dplyr::summarize(meanPos = mean(.data$positive), .groups = "drop") %>%
-    tidyr::pivot_wider(names_from = .data$reinforcer, values_from =.data$meanPos) %>%
-    dplyr::mutate(prefersGrayPositive = base::ifelse(.data$neutral > .data$reinforcer, TRUE, FALSE)) %>%
-    dplyr::pull(.data$prefersGrayPositive, .data$subject) %>%
+    tidyr::pivot_wider(names_from = .data$reinforcer_group, values_from =.data$meanPos) %>%
+    dplyr::mutate(preferstestgrayPositive = base::ifelse(.data$neutral > .data$reinforce_avg, TRUE, FALSE)) %>%
+    dplyr::pull(.data$preferstestgrayPositive, .data$subject) %>%
     base::as.list()
 
-  grayPosNames <- base::names(grayPosValues)
+  phase1Names <- base::names(phase1)
 
   #For phase 2, get the mean rating of the negative images seen and the neutral image.
   #then test to see if the person prefers gray over their average rating of the (negatively)
   #reinforcing images they saw.
+  phase2 <- data %>%
+    dplyr::filter(.data$phase == 2 & .data$icon1Sign == "pos") %>%
+    dplyr::group_by(.data$subject, .data$reinforcer_group) %>%
+    dplyr::summarize(meanPos = mean(.data$positive), .groups = "drop") %>%
+    tidyr::pivot_wider(names_from = .data$reinforcer_group, values_from = .data$meanPos) %>%
+    dplyr::mutate(prefersGrayPos = base::ifelse(.data$neutral > .data$reinforce_avg, TRUE, FALSE)) %>%
+    dplyr::left_join(data %>%
+                       dplyr::filter(.data$phase == 2 & .data$icon1Sign == "neg") %>%
+                       dplyr::group_by(.data$subject, .data$reinforcer_group) %>%
+                       dplyr::summarize(meanNeg = -mean(.data$negative), .groups = "drop") %>%
+                       tidyr::pivot_wider(names_from = .data$reinforcer_group, values_from = .data$meanNeg) %>%
+                       dplyr::mutate(prefersGrayNeg = base::ifelse(.data$neutral > .data$reinforce_avg, TRUE, FALSE)), by = "subject") %>%
+    dplyr::rename(neutralPos = .data$neutral.x,
+                  posReinforce = .data$reinforce_avg.x,
+                  neutralNeg = .data$neutral.y,
+                  negReinforce = .data$reinforce_avg.y)
 
-  grayNegValues <- data %>%
-    dplyr::filter(.data$phase == 2) %>%
-    dplyr::group_by(.data$subject, .data$reinforcer) %>%
-    dplyr::summarize(meanNeg = -mean(.data$negative), .groups = "drop") %>%
-    tidyr::pivot_wider(names_from = .data$reinforcer, values_from = .data$meanNeg) %>%
-    dplyr::mutate(prefersGrayNegative = base::ifelse(.data$neutral > .data$reinforcer, TRUE, FALSE)) %>%
-    dplyr::pull(.data$prefersGrayNegative, .data$subject) %>%
-    base::as.list()
+  phase2Pos <- phase2 %>% dplyr::pull(.data$prefersGrayPos, .data$subject) %>% base::as.list()
+  phase2Neg <- phase2 %>% dplyr::pull(.data$prefersGrayNeg, .data$subject) %>% base::as.list()
 
-  grayNegNames <- base::names(grayNegValues)
+  #Could also use phase2Neg. Doesn't really matter.
+  phase2Names <- base::names(phase2Pos)
 
-  #For each subject, bind the grayPosValues phase 1 as passed through the
-  #grayPos function with the grayNegValues phase 2 as passed through the grayNeg
+  #For each subject, bind the phase 1 as passed through the
+  #testgrayPos function with the testgrayNegValues phase 2 as passed through the testgrayNeg
   #function. Then bind the phase 3 data and sort it by subject and phase.
-  output <- purrr::map2_df(.x = grayPosValues, .y = grayPosNames, ~grayPos(df = data, value = .x, ID = .y)) %>%
-    dplyr::bind_rows(purrr::map2_df(.x = grayNegValues, .y = grayNegNames, ~grayNeg(df = data, value = .x, ID = .y))) %>%
+  output <- purrr::map2_df(.x = phase1, .y = phase1Names, ~getPhase1Optimal(df = data, value = .x, ID = .y)) %>%
+    dplyr::bind_rows(purrr::pmap_df(list(phase2Pos, phase2Neg, phase2Names), ~getPhase2Optimal(df = data, posValue = ..1, negValue = ..2, ID = ..3))) %>%
     dplyr::bind_rows(data %>% dplyr::filter(.data$phase == 3)) %>%
-    dplyr::arrange(.data$subject, .data$phase)
+    dplyr::arrange(.data$subject, .data$phase) %>%
+    dplyr::select(-.data$reinforcer_group)
 
   return(output)
 
