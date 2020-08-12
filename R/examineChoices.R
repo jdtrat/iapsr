@@ -216,6 +216,7 @@ grayNeg <- function(df, value, ID) {
 #'
 examineChoices <- function(choiceData, ratingsData) {
 
+
   data <- dplyr::left_join(choiceData, ratingsData %>%
                              dplyr::rename(reinforcer = .data$IAPS),
                            by = c("subject", "reinforcer")) %>%
@@ -226,7 +227,7 @@ examineChoices <- function(choiceData, ratingsData) {
     #ratingsOldCohort %>% filter(IAPS == "7006") %>%
     #summarize(Pos = mean(positive), Neg = mean(negative))
     mutate_rows(.data$reinforcer == "7006", positive = 2.630435, negative = 1.73913) %>%
-    dplyr::mutate(reinforcer = base::ifelse(.data$reinforcer == "neutral", "neutral", "reinforcer"))
+    dplyr::mutate(reinforcer_group = base::ifelse(.data$reinforcer == "neutral", "neutral", "reinforce_avg"))
 
 
   #For phase 1, get the mean rating of the positive images seen and the neutral image
@@ -234,11 +235,11 @@ examineChoices <- function(choiceData, ratingsData) {
   #reinforcing images they saw.
   grayPosValues <- data %>%
     dplyr::filter(.data$phase == 1) %>%
-    dplyr::group_by(.data$subject, .data$reinforcer) %>%
+    dplyr::group_by(.data$subject, .data$reinforcer_group) %>%
     dplyr::summarize(meanPos = mean(.data$positive), .groups = "drop") %>%
-    tidyr::pivot_wider(names_from = .data$reinforcer, values_from =.data$meanPos) %>%
-    dplyr::mutate(prefersGrayPositive = base::ifelse(.data$neutral > .data$reinforcer, TRUE, FALSE)) %>%
-    dplyr::pull(.data$prefersGrayPositive, .data$subject) %>%
+    tidyr::pivot_wider(names_from = .data$reinforcer_group, values_from =.data$meanPos) %>%
+    dplyr::mutate(prefersgrayPositive = base::ifelse(.data$neutral > .data$reinforce_avg, TRUE, FALSE)) %>%
+    dplyr::pull(.data$prefersgrayPositive, .data$subject) %>%
     base::as.list()
 
   grayPosNames <- base::names(grayPosValues)
@@ -249,11 +250,11 @@ examineChoices <- function(choiceData, ratingsData) {
 
   grayNegValues <- data %>%
     dplyr::filter(.data$phase == 2) %>%
-    dplyr::group_by(.data$subject, .data$reinforcer) %>%
+    dplyr::group_by(.data$subject, .data$reinforcer_group) %>%
     dplyr::summarize(meanNeg = -mean(.data$negative), .groups = "drop") %>%
-    tidyr::pivot_wider(names_from = .data$reinforcer, values_from = .data$meanNeg) %>%
-    dplyr::mutate(prefersGrayNegative = base::ifelse(.data$neutral > .data$reinforcer, TRUE, FALSE)) %>%
-    dplyr::pull(.data$prefersGrayNegative, .data$subject) %>%
+    tidyr::pivot_wider(names_from = .data$reinforcer_group, values_from = .data$meanNeg) %>%
+    dplyr::mutate(prefersgrayNegative = base::ifelse(.data$neutral > .data$reinforce_avg, TRUE, FALSE)) %>%
+    dplyr::pull(.data$prefersgrayNegative, .data$subject) %>%
     base::as.list()
 
   grayNegNames <- base::names(grayNegValues)
@@ -264,10 +265,10 @@ examineChoices <- function(choiceData, ratingsData) {
   output <- purrr::map2_df(.x = grayPosValues, .y = grayPosNames, ~grayPos(df = data, value = .x, ID = .y)) %>%
     dplyr::bind_rows(purrr::map2_df(.x = grayNegValues, .y = grayNegNames, ~grayNeg(df = data, value = .x, ID = .y))) %>%
     dplyr::bind_rows(data %>% dplyr::filter(.data$phase == 3)) %>%
-    dplyr::arrange(.data$subject, .data$phase)
+    dplyr::arrange(.data$subject, .data$phase) %>%
+    dplyr::select(-.data$reinforcer_group)
 
   return(output)
-
 }
 
 
