@@ -250,6 +250,7 @@ getPhase2Optimal <- function(df, posValue, negValue, ID) {
 #'
 examineChoices <- function(choiceData, ratingsData) {
 
+
   data <- dplyr::left_join(choiceData, ratingsData %>%
                              dplyr::rename(reinforcer = .data$IAPS),
                            by = c("subject", "reinforcer")) %>%
@@ -303,8 +304,9 @@ examineChoices <- function(choiceData, ratingsData) {
   #Could also use phase2Neg. Doesn't really matter.
   phase2Names <- base::names(phase2Pos)
 
-  #For each subject, bind the phase 1 as passed through the
-  #testgrayPos function with the testgrayNegValues phase 2 as passed through the testgrayNeg
+
+  #For each subject, bind the phase 1 values passed through with the phase 2 as passed through the grayNeg
+
   #function. Then bind the phase 3 data and sort it by subject and phase.
   output <- purrr::map2_df(.x = phase1, .y = phase1Names, ~getPhase1Optimal(df = data, value = .x, ID = .y)) %>%
     dplyr::bind_rows(purrr::pmap_df(list(phase2Pos, phase2Neg, phase2Names), ~getPhase2Optimal(df = data, posValue = ..1, negValue = ..2, ID = ..3))) %>%
@@ -313,7 +315,6 @@ examineChoices <- function(choiceData, ratingsData) {
     dplyr::select(-.data$reinforcer_group)
 
   return(output)
-
 }
 
 
